@@ -198,14 +198,18 @@ void Simulation::internalRun() {
         NvFlexUnmap(particleBuffer);
         NvFlexUnmap(velocityBuffer);
         NvFlexUnmap(phaseBuffer);
+
         // write to device (async)
         NvFlexSetParticles(solver, particleBuffer, NULL);
         NvFlexSetVelocities(solver, velocityBuffer, NULL);
         NvFlexSetPhases(solver, phaseBuffer, NULL);
+
         // set active count
         NvFlexSetActiveCount(solver, maxParticles);
+
         // tick
         NvFlexUpdateSolver(solver, dt, 1, false);
+
         // read back (async)
         NvFlexGetParticles(solver, particleBuffer, NULL);
         NvFlexGetVelocities(solver, velocityBuffer, NULL);
