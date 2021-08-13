@@ -1,0 +1,7 @@
+[submodule "gmod-module-base"]
+	path = gmod-module-base
+	url = https://github.com/Facepunch/gmod-module-base.git
+	branch = development
+[submodule "FleX"]
+	path = FleX
+	url = https://github.com/NVIDIAGameWorks/FleX.git
