@@ -151,7 +151,12 @@ void Simulation::internalRun() {
     g_params.diffuseLifetime = 2.0f;
 
     // planes created after particles
-    g_params.numPlanes = 0;
+    g_params.planes[0][0] = 0.f;
+    g_params.planes[0][1] = 1.f;
+    g_params.planes[0][2] = 0.f;
+    g_params.planes[0][3] = 0.f;
+
+    g_params.numPlanes = 1;
 
 
     NvFlexSolver* solver = NvFlexCreateSolver(library, &solverDesc);
@@ -161,15 +166,18 @@ void Simulation::internalRun() {
     NvFlexBuffer* particleBuffer = NvFlexAllocBuffer(library, maxParticles, sizeof(float4), eNvFlexBufferHost);
     NvFlexBuffer* velocityBuffer = NvFlexAllocBuffer(library, maxParticles, sizeof(float3), eNvFlexBufferHost);
     NvFlexBuffer* phaseBuffer = NvFlexAllocBuffer(library, maxParticles, sizeof(int), eNvFlexBufferHost);
+    NvFlexBuffer* activeBuffer = NvFlexAllocBuffer(library, maxParticles, sizeof(int), eNvFlexBufferHost);
+
+
     // map buffers for reading / writing
-    auto particles = (float4*)NvFlexMap(particleBuffer, eNvFlexMapWait);
-    auto velocities = (float3*)NvFlexMap(velocityBuffer, eNvFlexMapWait);
-    auto phases = (int*)NvFlexMap(phaseBuffer, eNvFlexMapWait);
+    float4* particles = (float4*)NvFlexMap(particleBuffer, eNvFlexMapWait);
+    float3* velocities = (float3*)NvFlexMap(velocityBuffer, eNvFlexMapWait);
+    int* phases = (int*)NvFlexMap(phaseBuffer, eNvFlexMapWait);
 
     // spawn particles
     //for (int i = 0; i < n; i++) {
         //std::cout << i << std::endl;
-        particles[0] = float4{ 0, 0, 1, 1 };
+        particles[0] = float4{ 0, 0, 1, 1.f / 2.f };
         velocities[0] = float3{ 0, 1, 0 };
         phases[0] = NvFlexMakePhase(0, eNvFlexPhaseSelfCollide | eNvFlexPhaseFluid);
 
@@ -198,13 +206,17 @@ void Simulation::internalRun() {
         NvFlexUnmap(particleBuffer);
         NvFlexUnmap(velocityBuffer);
         NvFlexUnmap(phaseBuffer);
+        NvFlexUnmap(activeBuffer);
 
         // write to device (async)
         NvFlexSetParticles(solver, particleBuffer, NULL);
         NvFlexSetVelocities(solver, velocityBuffer, NULL);
         NvFlexSetPhases(solver, phaseBuffer, NULL);
+        NvFlexSetActive(solver, activeBuffer, NULL);
+        NvFlexSetActiveCount(solver, maxParticles);
 
         // set active count
+        NvFlexSetParams(solver, &g_params);
         NvFlexSetActiveCount(solver, maxParticles);
 
         // tick
@@ -221,6 +233,7 @@ void Simulation::internalRun() {
     NvFlexFreeBuffer(particleBuffer);
     NvFlexFreeBuffer(velocityBuffer);
     NvFlexFreeBuffer(phaseBuffer);
+    NvFlexFreeBuffer(activeBuffer);
     NvFlexDestroySolver(solver);
     NvFlexShutdown(library);
 }

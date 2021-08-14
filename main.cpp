@@ -44,6 +44,8 @@ LUA_FUNCTION(GWaterGetParticleData) {
 
     for (int i = 0; i < Simulation::count; ++i)
     {
+        if (!Simulation::particles) continue;
+
         float4 pos = (float4)Simulation::particles[i];
         float3 vel = (float3)Simulation::velocities[i];
 
