@@ -1,188 +1,425 @@
-#include "GarrysMod/Lua/Interface.h"
-#include "GarrysMod/Lua/SourceCompat.h"
-#include "types.h"
-#include "Simulation.h"
+#include "declarations.h"
+#include <string>
 
 using namespace GarrysMod::Lua;
 
-ILuaBase* GlobalLUA = nullptr;
 
-void printLua(ILuaBase* LUA, std::string text)
+std::shared_ptr<flexAPI> flexLib;
+GarrysMod::Lua::ILuaBase* GlobalLUA;
+
+std::mutex* bufferMutex;
+float4* particleBufferHost;
+
+int numParticles = 0;
+int propCount = 0;
+bool simValid = true;
+
+//overloaded printlua func
+void printLua(std::string text)
 {
-    LUA->PushSpecial(SPECIAL_GLOB);
-    LUA->GetField(-1, "print");
-    LUA->PushString(text.c_str());
-    LUA->Call(1, 0);
-    LUA->Pop();
+	GlobalLUA->PushSpecial(SPECIAL_GLOB);
+	GlobalLUA->GetField(-1, "print");
+	GlobalLUA->PushString(text.c_str());
+	GlobalLUA->Call(1, 0);
+	GlobalLUA->Pop();
+}
+void printLua(char* text)
+{
+	GlobalLUA->PushSpecial(SPECIAL_GLOB);
+	GlobalLUA->GetField(-1, "print");
+	GlobalLUA->PushString(text);
+	GlobalLUA->Call(1, 0);
+	GlobalLUA->Pop();
 }
 
 
-Vector makeVec(float x, float y, float z) {
-    Vector vec;
-    vec.x = x;
-    vec.y = y;
-    vec.z = z;
-    return vec;
+#define ADD_GWATER_FUNC(funcName, tblName) GlobalLUA->PushCFunction(funcName); GlobalLUA->SetField(-2, tblName);
+
+
+//random extras
+float distance2(float4 a, float3 b) {
+	float x = b.x - a.x;
+	float y = b.y - a.y;
+	float z = b.z - a.z;
+
+	return (x * x + y * y + z * z);
 }
 
-/*
-A: unused for now, we'll add meshes after we're sure everything works nicely
-for now you should find how flex does the meshes by looking at the source code and searching
-LUA_FUNCTION(DummyMeshGen) {
-    LUA->PushVector(makeVec(-20, 0, 40));
-    LUA->PushVector(makeVec(0, 0, 0));
-    LUA->PushVector(makeVec(20, 0, 40));
-    return 3;	//number of arguments
-}*/
-
-
-
-LUA_FUNCTION(GWaterGetParticleData) {
-    int returncount = 0;
-
-    if (!Simulation::isValid) return 0; //simulation doesnt exist, bail
-
-    for (int i = 0; i < Simulation::count; ++i)
-    {
-        if (!Simulation::particles) continue;
-
-        float4 pos = (float4)Simulation::particles[i];
-        float3 vel = (float3)Simulation::velocities[i];
-
-        Vector pos2 = makeVec(pos.x, pos.y, pos.z);
-        Vector vel2 = makeVec(vel.x, vel.y, vel.z);
-
-        //printLua(LUA, std::to_string(pos.y));
-        //printLua(LUA, std::to_string(vel.z));
-
-        LUA->PushVector(pos2);
-        LUA->PushVector(vel2);
-        returncount += 2;
-    }
-
-    //printLua(LUA, "IsValid: " + std::to_string(Simulation::isValid) + " | IsRunning: " + std::to_string(Simulation::isRunning) + " | Count: " + std::to_string(Simulation::count));
-    return returncount;
+float dot(float3 a, float3 b) {
+	return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 
-LUA_FUNCTION(GWaterInitSim) {
-    if (Simulation::isValid) { 
-        Simulation::StartSimulation();
-        return 0; 
-    }
-
-    Simulation::InitSimulation();
-    Simulation::StartSimulation();
-    return 0;
+float3 subtractFloat34(float4 a, float3 b) {
+	return float3{ a.x - b.x, a.y - b.y, a.z - b.z };
 }
 
-LUA_FUNCTION(GWaterStartSim) {
-    Simulation::isRunning = true;
-    return 0;
+//returns particle xyz data
+LUA_FUNCTION(RenderParticles) {
+
+	//get headpos and headang
+	LUA->CheckType(-1, Type::Vector);
+	LUA->CheckType(-2, Type::Vector);
+
+	Vector gmodDir = LUA->GetVector();
+	float3 dir = float3{ gmodDir.x, gmodDir.y, gmodDir.z };
+
+	Vector gmodPos = LUA->GetVector(-2);
+	float3 pos = float3{ gmodPos.x, gmodPos.y, gmodPos.z };
+
+	LUA->Pop(2);
+
+	LUA->PushSpecial(SPECIAL_GLOB);
+	LUA->GetField(-1, "render");
+
+	//loop thru all particles, any that we cannot see are not sent to gmod
+	for (int i = 0; i < numParticles; i++) {
+		float4 thisPos = particleBufferHost[i];
+
+		if (dot(subtractFloat34(thisPos, pos), dir) < 0 || distance2(thisPos, pos) > 25000000) {
+			continue;
+		}
+
+		Vector gmodPos;
+		gmodPos.x = thisPos.x;
+		gmodPos.y = thisPos.y;
+		gmodPos.z = thisPos.z;
+
+		//draws the sprite
+		LUA->GetField(-1, "DrawSprite");
+		LUA->PushVector(gmodPos);
+		LUA->PushNumber(10);
+		LUA->PushNumber(10);
+		LUA->Call(3, 0);	//pops literally everything above except render and _G
+
+	}
+
+	LUA->Pop(2); //pop _G and render
+	LUA->PushNumber(numParticles);
+
+	return 1;
 }
 
-LUA_FUNCTION(GWaterPauseSim) {
-    Simulation::isRunning = false;
-    return 0;
+//removes all particles in the simulation
+LUA_FUNCTION(RemoveAllParticles) {
+	bufferMutex->lock();
+	if (!simValid) {
+		bufferMutex->unlock();
+		return 0;
+	}
+	
+	flexLib->removeAllParticles();
+
+	bufferMutex->unlock();
+
+	return 0;
 }
 
-LUA_FUNCTION(GWaterStopSim) {
-    if (!Simulation::isValid) return 0;
-
-    Simulation::StopSimulation();
-    return 0;
+//sets radius of particles
+LUA_FUNCTION(SetRadius) {
+	LUA->CheckType(-1, Type::Number);
+	flexLib->initParamsRadius(static_cast<float>(LUA->GetNumber()));
+	LUA->Pop();
+	return 0;
 }
 
-LUA_FUNCTION(GWaterIsRunning) {
-    LUA->PushBool(Simulation::isRunning);
-    return 1;
+//stops simulation
+LUA_FUNCTION(DeleteSimulation) {
+	flexLib.reset();
+
+	//set .gwater to nil
+	LUA->PushSpecial(SPECIAL_GLOB);
+	LUA->PushNil();
+	LUA->SetField(-2, "gwater");
+	LUA->Pop(); // pop _G
+
+	return 0;
 }
 
-LUA_FUNCTION(GWaterIsValid) {
-    LUA->PushBool(Simulation::isValid);
-    return 1;
+LUA_FUNCTION(SpawnParticle) {
+	//check to see if they are both vectors
+	LUA->CheckType(-2, Type::Vector); // pos
+	LUA->CheckType(-1, Type::Vector); // vel
+
+	//gmod Vector and fleX float4
+	Vector gmodPos = LUA->GetVector(-2);	//pos
+	Vector gmodVel = LUA->GetVector(-1);	//vel
+
+	flexLib->addParticle(gmodPos, gmodVel);
+
+	//remove vel and pos from stack
+	LUA->Pop(2);	
+
+	return 0;
 }
 
-LUA_FUNCTION(GWaterParticleCount) {
-    LUA->PushNumber(Simulation::count);
-    return 1;
+LUA_FUNCTION(SpawnCube) {
+	//check to see if they are both vectors
+	LUA->CheckType(-4, Type::Vector); // pos
+	LUA->CheckType(-3, Type::Vector); // size
+	LUA->CheckType(-2, Type::Number); // size apart (usually radius)
+	LUA->CheckType(-1, Type::Vector); // vel
+
+	//gmod Vector and fleX float4
+	Vector gmodPos = LUA->GetVector(-4);	//pos
+	Vector gmodSize = LUA->GetVector(-3);	//size
+	Vector gmodVel = LUA->GetVector(-1);	//vel
+	float size = LUA->GetNumber(-2);
+
+	for (int z = -gmodSize.z; z <= gmodSize.z; z++) {
+		for (int y = -gmodSize.y; y <= gmodSize.y; y++) {
+			for (int x = -gmodSize.x; x <= gmodSize.x; x++) {
+				Vector offset;
+				offset.x = gmodPos.x + x * size;
+				offset.y = gmodPos.y + y * size;
+				offset.z = gmodPos.z + z * size;
+
+				flexLib->addParticle(offset, gmodVel);
+			}
+
+		}
+
+	}
+
+	//remove pos, size, size, and vel
+	LUA->Pop(4);
+
+	return 0;
 }
 
-//spawns a particle, pass 2 vectors to it
-LUA_FUNCTION(GWaterSpawnParticle) {
-    Vector pos = LUA->GetVector(-2);    //first agrument would be at the bottom because it is pushed first
-    Vector vel = LUA->GetVector(-1);
+//andreweathan
+LUA_FUNCTION(SpawnCubeExact) {
+	//check to see if they are both vectors
+	LUA->CheckType(-4, Type::Vector); // pos
+	LUA->CheckType(-3, Type::Vector); // size
+	LUA->CheckType(-2, Type::Number); // size apart (usually radius)
+	LUA->CheckType(-1, Type::Vector); // vel
 
-    //printLua(LUA, std::to_string(pos.x) + " " + std::to_string(pos.y) + " " + std::to_string(pos.z));
-    //printLua(LUA, std::to_string(vel.x) + " " + std::to_string(vel.y) + " " + std::to_string(vel.z));
+	//gmod Vector and fleX float4
+	Vector gmodPos = LUA->GetVector(-4);	//pos
+	Vector gmodSize = LUA->GetVector(-3);	//size
+	Vector gmodVel = LUA->GetVector(-1);	//vel
+	float size = LUA->GetNumber(-2);
 
-    if (Simulation::isValid && Simulation::count < Simulation::maxParticles) {
-        Simulation::SpawnParticle(pos, vel);
-    }
+	for (float z = -gmodSize.z * size; z < gmodSize.z * size; z++)
+		for (float y = -gmodSize.y * size; y < gmodSize.y * size; y++)
+			for (float x = -gmodSize.x * size; x < gmodSize.x * size; x++) {
 
-    return 0;
+				Vector newPos;
+				newPos.x = x + gmodPos.x;
+				newPos.y = x + gmodPos.y;
+				newPos.z = x + gmodPos.z;
+
+				flexLib->addParticle(newPos, gmodVel);
+			}
+
+	return 0;
 }
 
-// Called when the module is loaded
+//the world mesh
+LUA_FUNCTION(AddConvexMesh) {
+
+	LUA->CheckType(-1, Type::Vector); // Max
+	LUA->CheckType(-2, Type::Vector); // Min
+	LUA->CheckType(-3, Type::Table);  // Sorted verts
+
+	//obbminmax
+	Vector maxV = LUA->GetVector();
+	Vector minV = LUA->GetVector(-2);
+	float minFloat[3] = { minV.x, minV.y, minV.z };
+	float maxFloat[3] = { maxV.x, maxV.y, maxV.z };
+	LUA->Pop(2); //pop off min & max
+
+	//lock buffer
+	bufferMutex->lock();
+
+	if (!simValid) {
+		bufferMutex->unlock();
+		LUA->PushBool(false);
+		return 0;
+	}
+
+	size_t len = LUA->ObjLen();
+
+	//check to make sure the mesh is even valid (error models)
+	if (len < 1 || len % 3 != 0) {
+		bufferMutex->unlock();
+		printLua("[GWATER]: Invalid mesh given");
+		LUA->PushBool(false);
+		return 1;
+	}
+
+	if (len / 3 <= 64) {
+		flexLib->addMeshConvex(LUA, minFloat, maxFloat, LUA->ObjLen());
+		printLua("[GWATER]: Added convex mesh " + std::to_string(propCount));
+	}
+	else {
+		flexLib->addMeshConcave(LUA, minFloat, maxFloat, LUA->ObjLen());
+		printLua("[GWATER]: Too many tris for mesh " + std::to_string(propCount) + ", adding as concave mesh!");
+	}
+
+	bufferMutex->unlock();
+
+	LUA->PushBool(true);
+
+	return 1;
+
+}
+
+
+LUA_FUNCTION(AddConcaveMesh) {
+
+	LUA->CheckType(-1, Type::Vector); // Max
+	LUA->CheckType(-2, Type::Vector); // Min
+	LUA->CheckType(-3, Type::Table);  // Sorted verts
+
+	//obbminmax
+	Vector maxV = LUA->GetVector();
+	Vector minV = LUA->GetVector(-2);
+	float minFloat[3] = { minV.x, minV.y, minV.z };
+	float maxFloat[3] = { maxV.x, maxV.y, maxV.z };
+	LUA->Pop(2); //pop off min & max
+
+	//lock buffer
+	bufferMutex->lock();
+
+	if (!simValid) {
+		bufferMutex->unlock();
+		LUA->PushBool(false);
+		return 1;
+	}
+
+	size_t len = LUA->ObjLen();
+
+	//check to make sure the mesh is even valid (error models)
+	if (len < 1 || len % 3 != 0) {
+		bufferMutex->unlock();
+		printLua("[GWATER]: Invalid mesh given");
+		LUA->PushBool(false);
+		return 1;
+	}
+
+	flexLib->addMeshConcave(LUA, minFloat, maxFloat, LUA->ObjLen());
+	printLua("[GWATER]: Added concave mesh " + std::to_string(propCount));
+
+	bufferMutex->unlock();
+
+	LUA->PushBool(true);
+
+	return 1;
+}
+
+LUA_FUNCTION(BlackHole) {
+
+	LUA->CheckType(-1, Type::Number); // radius
+	LUA->CheckType(-2, Type::Vector); // pos
+
+	float radius = LUA->GetNumber();
+	Vector vec = LUA->GetVector(-2);
+	
+	//flexLib->removeInRadius(float3{vec.x, vec.y, vec.z}, radius * radius);
+
+	return 0;
+}
+
+LUA_FUNCTION(SetMeshPos) {
+
+	if (!simValid) return 0;
+
+	LUA->CheckType(-1, Type::Number); // ID
+	LUA->CheckType(-2, Type::Vector); // Pos
+
+	LUA->CheckType(-3, Type::Vector); // Ang xyz
+	LUA->CheckType(-4, Type::Number); // Ang w
+
+	int id = static_cast<int>(LUA->GetNumber());	//lua is 1 indexed
+	Vector gmodPos = LUA->GetVector(-2);
+	Vector gmodAng = LUA->GetVector(-3);
+	float gmodAngW = static_cast<float>(LUA->GetNumber(-4));
+
+	flexLib->updateMeshPos(float4{ gmodPos.x, gmodPos.y, gmodPos.z, 1.f / 50000.f }, float4{ gmodAng.x, gmodAng.y, gmodAng.z, gmodAngW }, id);
+
+	LUA->Pop(4);	//pop id, pos, ang and angw
+	return 0;
+}
+
+
+LUA_FUNCTION(RemoveMesh) {
+	LUA->CheckType(-1, Type::Number); // ID
+	int id = static_cast<int>(LUA->GetNumber());	
+
+	bufferMutex->lock();
+	if (!simValid) {
+		bufferMutex->unlock();
+		return 0;
+	}
+
+	flexLib->freeProp(id);
+
+	bufferMutex->unlock();
+
+	LUA->Pop();	//pop id
+
+	return 0;
+}
+
+LUA_FUNCTION(UpdateParam){
+	LUA->CheckType(-1, Type::Number); 
+	LUA->CheckType(-2, Type::String); //ID of param
+
+	float n = LUA->GetNumber();
+	std::string str = LUA->GetString(-2);
+	flexLib->updateParam(str, n);
+
+	LUA->Pop(2);
+
+	return 0;
+}
+
+
+
 GMOD_MODULE_OPEN()
 {
-    GlobalLUA = LUA;
+	GlobalLUA = LUA;
+	LUA->PushSpecial(SPECIAL_GLOB);
 
-    /// Particle Funcs ///
+	LUA->CreateTable();
+	ADD_GWATER_FUNC(RenderParticles, "RenderParticles");
+	ADD_GWATER_FUNC(DeleteSimulation, "DeleteSimulation");
+	ADD_GWATER_FUNC(AddConvexMesh, "AddConvexMesh");
+	ADD_GWATER_FUNC(AddConcaveMesh, "AddConcaveMesh");
+	ADD_GWATER_FUNC(SpawnParticle, "SpawnParticle");
+	ADD_GWATER_FUNC(RemoveAllParticles, "RemoveAll");
+	ADD_GWATER_FUNC(SetMeshPos, "SetMeshPos");
+	ADD_GWATER_FUNC(RemoveMesh, "RemoveMesh");
+	ADD_GWATER_FUNC(SpawnCube, "SpawnCube");
+	ADD_GWATER_FUNC(SpawnCube, "SpawnCubeExact");
 
-    // push particle data retriever
-    LUA->PushSpecial(SPECIAL_GLOB); //push _G
+	//param funcs
+	ADD_GWATER_FUNC(SetRadius, "SetRadius");
+	ADD_GWATER_FUNC(UpdateParam, "UpdateParam");
 
-    LUA->PushString("GWater_GetParticleData");
-    LUA->PushCFunction(GWaterGetParticleData);
-    LUA->SetTable(-3);
+	LUA->SetField(-2, "gwater");
+	LUA->Pop(); //remove _G
 
-    // push particle data retriever
-    LUA->PushString("GWater_SpawnParticle");
-    LUA->PushCFunction(GWaterSpawnParticle);
-    LUA->SetTable(-3);
+	// Initialize FleX api class
+	flexLib = std::make_shared<flexAPI>();
 
-    // push simulation init
-    LUA->PushString("GWater_InitSimulation");
-    LUA->PushCFunction(GWaterInitSim);
-    LUA->SetTable(-3);
+	return 0;
 
-    // push simulation starter
-    LUA->PushString("GWater_StartSimulation");
-    LUA->PushCFunction(GWaterStartSim);
-    LUA->SetTable(-3);
-
-    // push simulation pauser
-    LUA->PushString("GWater_PauseSimulation");
-    LUA->PushCFunction(GWaterPauseSim);
-    LUA->SetTable(-3);
-
-    // push simulation destroyer
-    LUA->PushString("GWater_StopSimulation");
-    LUA->PushCFunction(GWaterStopSim);
-    LUA->SetTable(-3);
-
-    // push simulation isrunning
-    LUA->PushString("GWater_IsRunning");
-    LUA->PushCFunction(GWaterIsRunning);
-    LUA->SetTable(-3);
-
-    // push simulation isvalid
-    LUA->PushString("GWater_IsValid");
-    LUA->PushCFunction(GWaterIsValid);
-    LUA->SetTable(-3);
-
-    // push simulation count retriever
-    LUA->PushString("GWater_ParticleCount");
-    LUA->PushCFunction(GWaterParticleCount);
-    LUA->SetTable(-3);
-
-    LUA->Pop(); //pop _G
-
-    return 0;
 }
 
 // Called when the module is unloaded
 GMOD_MODULE_CLOSE()
 {
-    return 0;
+
+	flexLib.reset();
+
+	//set .gwater to nil
+	LUA->PushSpecial(SPECIAL_GLOB);
+	LUA->PushNil();
+	LUA->SetField(-2, "gwater");
+	LUA->Pop(); // pop _G
+
+	return 0;
+
 }
