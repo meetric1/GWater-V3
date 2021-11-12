@@ -86,6 +86,7 @@ void flexAPI::freeProp(int id) {
 
 
 }
+
 /*
 void flexAPI::removeInRadius(float3 pos, float r) {
 
@@ -141,6 +142,9 @@ void flexAPI::removeAllParticles() {
     numParticles = 0;
 }
 
+void flexAPI::removeAllProps() {
+    for (int i = 1; i < props.size(); i++) freeProp(i);
+}
 
 //flex startup
 flexAPI::flexAPI() {
@@ -152,6 +156,7 @@ flexAPI::flexAPI() {
 
     flexParams = new NvFlexParams();
     initParams();
+    radius = 10;
 
     flexSolver = NvFlexCreateSolver(flexLibrary, &flexSolverDesc);
     NvFlexSetParams(flexSolver, flexParams);
@@ -176,6 +181,7 @@ flexAPI::flexAPI() {
 
     //create buffer for the thread
     bufferMutex = new std::mutex();
+    simBuffers = new SimBuffers{};
 
     // Launch our flex solver thread
     std::thread(&flexAPI::flexSolveThread, this).detach();

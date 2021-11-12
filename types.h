@@ -75,6 +75,8 @@ class flexAPI {
 
 public:
 
+    float radius;
+
     void addParticle(Vector pos, Vector vel);
 
     void addMeshConcave(GarrysMod::Lua::ILuaBase* LUA, const float* minFloat, const float* maxFloat, size_t tableLen);
@@ -88,6 +90,7 @@ public:
     void initParamsRadius(float r);
     void flexSolveThread();
     void removeAllParticles();
+    void removeAllProps();
 
     void mapBuffers();
     void unmapBuffers();

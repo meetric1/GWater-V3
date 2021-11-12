@@ -96,7 +96,9 @@ void flexAPI::initParamsRadius(float r) {
 	flexParams->solidRestDistance = r * 0.5f;
 	flexParams->particleCollisionMargin = r * 0.5f;
 	flexParams->shapeCollisionMargin = r * 0.25f;
-	flexParams->collisionDistance = r * 0.25f; // Needed for tri-particle intersection
+	flexParams->collisionDistance = r * 0.5f; // Needed for tri-particle intersection
+
+	radius = r;
 }
 
 

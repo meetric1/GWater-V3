@@ -3,7 +3,6 @@
 
 using namespace GarrysMod::Lua;
 
-
 std::shared_ptr<flexAPI> flexLib;
 GarrysMod::Lua::ILuaBase* GlobalLUA;
 
@@ -33,8 +32,46 @@ void printLua(char* text)
 }
 
 
-#define ADD_GWATER_FUNC(funcName, tblName) GlobalLUA->PushCFunction(funcName); GlobalLUA->SetField(-2, tblName);
+////////QUAT LIB//////////
 
+#define _PI 3.14159265358979323846
+float rad(float degree) {
+	return (degree * (_PI / 180));
+}
+
+//oh my ucking god kill me
+float4 getQuatMul(float4 lhs, float4 rhs) {
+	return float4{
+		lhs.x * rhs.x - lhs.y * rhs.y - lhs.z * rhs.z - lhs.w * rhs.w,
+		lhs.x * rhs.y + lhs.y * rhs.x + lhs.z * rhs.w - lhs.w * rhs.z,
+		lhs.x * rhs.z + lhs.z * rhs.x + lhs.w * rhs.y - lhs.y * rhs.w,
+		lhs.x * rhs.w + lhs.w * rhs.x + lhs.y * rhs.z - lhs.z * rhs.y
+	};
+}
+
+float4 quatFromAngleComponents(float p, float y, float r) {
+	p = rad(p) * 0.5;
+	y = rad(y) * 0.5;
+	r = rad(r) * 0.5;
+
+	float4 q_x = float4{ static_cast<float>(cos(y)), 0, 0, static_cast<float>(sin(y)) };
+	float4 q_y = float4{ static_cast<float>(cos(p)), 0, static_cast<float>(sin(p)), 0 };
+	float4 q_z = float4{ static_cast<float>(cos(r)), static_cast<float>(sin(r)), 0, 0 };
+
+	return getQuatMul(q_x, getQuatMul(q_y, q_z));
+}
+
+
+float4 quatFromAngle(QAngle ang) {
+	return quatFromAngleComponents(ang.x, ang.y, ang.z);
+}
+
+float4 unfuckQuat(float4 q) {
+	return float4{ q.y, q.z, q.w, q.x };
+}
+
+
+#define ADD_FUNC(funcName, tblName) GlobalLUA->PushCFunction(funcName); GlobalLUA->SetField(-2, tblName);
 
 //random extras
 float distance2(float4 a, float3 b) {
@@ -53,7 +90,11 @@ float3 subtractFloat34(float4 a, float3 b) {
 	return float3{ a.x - b.x, a.y - b.y, a.z - b.z };
 }
 
-//returns particle xyz data
+
+
+////////// LUA FUNCTIONS /////////////
+
+//renders particles
 LUA_FUNCTION(RenderParticles) {
 
 	//get headpos and headang
@@ -71,6 +112,8 @@ LUA_FUNCTION(RenderParticles) {
 	LUA->PushSpecial(SPECIAL_GLOB);
 	LUA->GetField(-1, "render");
 
+	float particleRadius = flexLib->radius;
+
 	//loop thru all particles, any that we cannot see are not sent to gmod
 	for (int i = 0; i < numParticles; i++) {
 		float4 thisPos = particleBufferHost[i];
@@ -87,8 +130,8 @@ LUA_FUNCTION(RenderParticles) {
 		//draws the sprite
 		LUA->GetField(-1, "DrawSprite");
 		LUA->PushVector(gmodPos);
-		LUA->PushNumber(10);
-		LUA->PushNumber(10);
+		LUA->PushNumber(particleRadius);
+		LUA->PushNumber(particleRadius);
 		LUA->Call(3, 0);	//pops literally everything above except render and _G
 
 	}
@@ -159,11 +202,11 @@ LUA_FUNCTION(SpawnCube) {
 	LUA->CheckType(-2, Type::Number); // size apart (usually radius)
 	LUA->CheckType(-1, Type::Vector); // vel
 
-	//gmod Vector and fleX float4
+	//gmod Vector
 	Vector gmodPos = LUA->GetVector(-4);	//pos
 	Vector gmodSize = LUA->GetVector(-3);	//size
+	float size = LUA->GetNumber(-2);		//size apart
 	Vector gmodVel = LUA->GetVector(-1);	//vel
-	float size = LUA->GetNumber(-2);
 
 	for (int z = -gmodSize.z; z <= gmodSize.z; z++) {
 		for (int y = -gmodSize.y; y <= gmodSize.y; y++) {
@@ -197,20 +240,28 @@ LUA_FUNCTION(SpawnCubeExact) {
 	//gmod Vector and fleX float4
 	Vector gmodPos = LUA->GetVector(-4);	//pos
 	Vector gmodSize = LUA->GetVector(-3);	//size
+	float size = LUA->GetNumber(-2);		//size apart
 	Vector gmodVel = LUA->GetVector(-1);	//vel
-	float size = LUA->GetNumber(-2);
 
-	for (float z = -gmodSize.z * size; z < gmodSize.z * size; z++)
-		for (float y = -gmodSize.y * size; y < gmodSize.y * size; y++)
-			for (float x = -gmodSize.x * size; x < gmodSize.x * size; x++) {
+	gmodSize.x /= 2;
+	gmodSize.y /= 2;
+	gmodSize.z /= 2;
+
+	for (float z = -gmodSize.z; z < gmodSize.z; z++) {
+		for (float y = -gmodSize.y ; y < gmodSize.y; y++) {
+			for (float x = -gmodSize.x; x < gmodSize.x; x++) {
 
 				Vector newPos;
-				newPos.x = x + gmodPos.x;
-				newPos.y = x + gmodPos.y;
-				newPos.z = x + gmodPos.z;
+				newPos.x = (x * size) + gmodPos.x;
+				newPos.y = (y * size) + gmodPos.y;
+				newPos.z = (z * size) + gmodPos.z;
 
 				flexLib->addParticle(newPos, gmodVel);
 			}
+		}
+	}
+
+	LUA->Pop(4);
 
 	return 0;
 }
@@ -326,19 +377,17 @@ LUA_FUNCTION(SetMeshPos) {
 	if (!simValid) return 0;
 
 	LUA->CheckType(-1, Type::Number); // ID
-	LUA->CheckType(-2, Type::Vector); // Pos
+	LUA->CheckType(-2, Type::Angle); // Ang pyr
+	LUA->CheckType(-3, Type::Vector); // pos
 
-	LUA->CheckType(-3, Type::Vector); // Ang xyz
-	LUA->CheckType(-4, Type::Number); // Ang w
+	int id = static_cast<int>(LUA->GetNumber(-1));	//lua is 1 indexed
+	QAngle gmodAng = LUA->GetAngle(-2);
+	Vector gmodPos = LUA->GetVector(-3);
 
-	int id = static_cast<int>(LUA->GetNumber());	//lua is 1 indexed
-	Vector gmodPos = LUA->GetVector(-2);
-	Vector gmodAng = LUA->GetVector(-3);
-	float gmodAngW = static_cast<float>(LUA->GetNumber(-4));
+	// 1.f/50000.f inverse mass?
+	flexLib->updateMeshPos(float4{ gmodPos.x, gmodPos.y, gmodPos.z, 1.f / 50000.f }, unfuckQuat(quatFromAngle(gmodAng)), id);
 
-	flexLib->updateMeshPos(float4{ gmodPos.x, gmodPos.y, gmodPos.z, 1.f / 50000.f }, float4{ gmodAng.x, gmodAng.y, gmodAng.z, gmodAngW }, id);
-
-	LUA->Pop(4);	//pop id, pos, ang and angw
+	LUA->Pop(3);	//pop id, ang, pos
 	return 0;
 }
 
@@ -362,7 +411,7 @@ LUA_FUNCTION(RemoveMesh) {
 	return 0;
 }
 
-LUA_FUNCTION(UpdateParam){
+LUA_FUNCTION(UpdateParam) {
 	LUA->CheckType(-1, Type::Number); 
 	LUA->CheckType(-2, Type::String); //ID of param
 
@@ -375,28 +424,35 @@ LUA_FUNCTION(UpdateParam){
 	return 0;
 }
 
+//(doesnt actually remove all props, removes all props BUT the world)
+LUA_FUNCTION(RemoveAllProps) {
+	flexLib->removeAllProps();
 
+	return 0;
+}
 
+//called when module is opened
 GMOD_MODULE_OPEN()
 {
 	GlobalLUA = LUA;
 	LUA->PushSpecial(SPECIAL_GLOB);
 
 	LUA->CreateTable();
-	ADD_GWATER_FUNC(RenderParticles, "RenderParticles");
-	ADD_GWATER_FUNC(DeleteSimulation, "DeleteSimulation");
-	ADD_GWATER_FUNC(AddConvexMesh, "AddConvexMesh");
-	ADD_GWATER_FUNC(AddConcaveMesh, "AddConcaveMesh");
-	ADD_GWATER_FUNC(SpawnParticle, "SpawnParticle");
-	ADD_GWATER_FUNC(RemoveAllParticles, "RemoveAll");
-	ADD_GWATER_FUNC(SetMeshPos, "SetMeshPos");
-	ADD_GWATER_FUNC(RemoveMesh, "RemoveMesh");
-	ADD_GWATER_FUNC(SpawnCube, "SpawnCube");
-	ADD_GWATER_FUNC(SpawnCube, "SpawnCubeExact");
+	ADD_FUNC(RenderParticles, "RenderParticles");
+	ADD_FUNC(DeleteSimulation, "DeleteSimulation");
+	ADD_FUNC(AddConvexMesh, "AddConvexMesh");
+	ADD_FUNC(AddConcaveMesh, "AddConcaveMesh");
+	ADD_FUNC(SpawnParticle, "SpawnParticle");
+	ADD_FUNC(RemoveAllParticles, "RemoveAll");
+	ADD_FUNC(SetMeshPos, "SetMeshPos");
+	ADD_FUNC(RemoveMesh, "RemoveMesh");
+	ADD_FUNC(SpawnCube, "SpawnCube");
+	ADD_FUNC(SpawnCubeExact, "SpawnCubeExact");
+	ADD_FUNC(RemoveAllProps, "RemoveAllProps");
 
 	//param funcs
-	ADD_GWATER_FUNC(SetRadius, "SetRadius");
-	ADD_GWATER_FUNC(UpdateParam, "UpdateParam");
+	ADD_FUNC(SetRadius, "SetRadius");
+	ADD_FUNC(UpdateParam, "UpdateParam");
 
 	LUA->SetField(-2, "gwater");
 	LUA->Pop(); //remove _G

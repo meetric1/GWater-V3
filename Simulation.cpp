@@ -7,6 +7,10 @@
 #include <string>
 #include <random>
 
+void sleep(int sec) {
+	std::this_thread::sleep_for(std::chrono::milliseconds(sec));
+}
+
 void flexAPI::flexSolveThread() {
 
 	//declarations
@@ -15,11 +19,16 @@ void flexAPI::flexSolveThread() {
 
 	//runs always while sim is active
 	while (simValid) {
-		std::this_thread::sleep_for(std::chrono::milliseconds(simFramerateMi));
 
-		if (!numParticles && !particleQueue.size()) continue;
+		if (!numParticles && !particleQueue.size()) {
+			sleep(simFramerateMi);
+			continue;
+		}
 
 		bufferMutex->lock();
+
+		//grab current time vs time it takes to iterate through everything (if cpu is maxed)
+		std::chrono::steady_clock::time_point curtimeStart = std::chrono::high_resolution_clock::now();
 
 		if (!simValid) {	//because we are in a buffer lock, the simulation might have already been shut down (even with the while loop check!)
 			bufferMutex->unlock();
@@ -73,8 +82,13 @@ void flexAPI::flexSolveThread() {
 		NvFlexSetShapes(flexSolver, geometryBuffer, geoPosBuffer, geoQuatBuffer, geoPrevPosBuffer, geoPrevQuatBuffer, geoFlagsBuffer, propCount);
 		NvFlexSetParams(flexSolver, flexParams);
 
+		//grab end time
+		std::chrono::steady_clock::time_point curtimeEnd = std::chrono::high_resolution_clock::now();
+		std::chrono::milliseconds diff = std::chrono::duration_cast<std::chrono::milliseconds>(curtimeEnd - curtimeStart);
+
 		// tick the solver 
-		NvFlexUpdateSolver(flexSolver, simFramerate * 8, 3, false);
+		NvFlexUpdateSolver(flexSolver, simFramerate * 8 + static_cast<float>(diff.count()) / 1000.f, 3, false);
+		//NvFlexUpdateSolver(flexSolver, simFramerate * 8, 3, false);
 
 		// read back (async)
 		NvFlexGetParticles(flexSolver, particleBuffer, NULL);
@@ -83,6 +97,8 @@ void flexAPI::flexSolveThread() {
 		NvFlexGetActive(flexSolver, activeBuffer, NULL);
 
 		bufferMutex->unlock();	//dont forget to unlock our buffer
+
+		sleep(simFramerateMi);
 
 	}
 

@@ -84,11 +84,6 @@ void flexAPI::addMeshConvex(GarrysMod::Lua::ILuaBase* LUA, const float* minFloat
 
 }
 
-
-
-
-
-
 //generate a TRIANGLE mesh for flex
 void flexAPI::addMeshConcave(GarrysMod::Lua::ILuaBase* LUA, const float* minFloat, const float* maxFloat, size_t tableLen) {
     //prop decleration
