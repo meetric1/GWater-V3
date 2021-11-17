@@ -61,7 +61,7 @@ void flexAPI::initParams() {
 	flexParams->planes[0][0] = 0.f;
 	flexParams->planes[0][1] = 0.f;
 	flexParams->planes[0][2] = 1.f;
-	flexParams->planes[0][3] = 13288.f;
+	flexParams->planes[0][3] = 32768.f;
 
 	flexParams->numPlanes = 1;
 

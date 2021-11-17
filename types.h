@@ -44,6 +44,9 @@ struct SimBuffers {
     float4* prevPositions;
     float4* prevRotations;
     int* flags;
+    int* indices;
+    float* lengths;
+    float* coefficients;
 };
 
 
@@ -62,9 +65,12 @@ class flexAPI {
     NvFlexBuffer* geoFlagsBuffer;
     NvFlexBuffer* geoPosBuffer;
     NvFlexBuffer* geoQuatBuffer;
-
     NvFlexBuffer* geoPrevPosBuffer;
     NvFlexBuffer* geoPrevQuatBuffer;
+
+    NvFlexBuffer* indicesBuffer;
+    NvFlexBuffer* lengthsBuffer;
+    NvFlexBuffer* coefficientsBuffer;
 
     NvFlexParams* flexParams;
     NvFlexSolverDesc flexSolverDesc;
@@ -91,6 +97,9 @@ public:
     void flexSolveThread();
     void removeAllParticles();
     void removeAllProps();
+    void removeInRadius(float3 pos, float radius);
+
+    void addCloth(GarrysMod::Lua::ILuaBase* LUA, size_t tableLen);
 
     void mapBuffers();
     void unmapBuffers();

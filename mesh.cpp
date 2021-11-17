@@ -153,5 +153,9 @@ void flexAPI::addMeshConcave(GarrysMod::Lua::ILuaBase* LUA, const float* minFloa
 
 }
 
+//generate a TRIANGLE mesh for flex
+//void flexAPI::addCloth(GarrysMod::Lua::ILuaBase* LUA, size_t tableLen) {
 
+//    NvFlexExtCreateClothFromMesh(const float* particles, int numParticles, const int* indices, int numTriangles, float stretchStiffness, float bendStiffness, float tetherStiffness, float tetherGive, float pressure)
 
+//}

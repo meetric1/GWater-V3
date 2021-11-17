@@ -82,6 +82,7 @@ float distance2(float4 a, float3 b) {
 	return (x * x + y * y + z * z);
 }
 
+
 float dot(float3 a, float3 b) {
 	return a.x * b.x + a.y * b.y + a.z * b.z;
 }
@@ -142,8 +143,31 @@ LUA_FUNCTION(RenderParticles) {
 	return 1;
 }
 
+//xyz data triangle test
+LUA_FUNCTION(GetData) {
+	LUA->CreateTable();
+
+	//loop thru all particles & add to table (on stack)
+	for (int i = 0; i < numParticles; i++) {
+
+		float4 thisPos = particleBufferHost[i];
+
+		Vector gmodPos;
+		gmodPos.x = thisPos.x;
+		gmodPos.y = thisPos.y;
+		gmodPos.z = thisPos.z;
+
+		LUA->PushNumber(static_cast<double>(i) + 1);
+		LUA->PushVector(gmodPos);
+		LUA->SetTable(-3);
+	}
+
+	return 1;
+}
+
+
 //removes all particles in the simulation
-LUA_FUNCTION(RemoveAllParticles) {
+LUA_FUNCTION(RemoveAll) {
 	bufferMutex->lock();
 	if (!simValid) {
 		bufferMutex->unlock();
@@ -211,6 +235,43 @@ LUA_FUNCTION(SpawnCube) {
 	for (int z = -gmodSize.z; z <= gmodSize.z; z++) {
 		for (int y = -gmodSize.y; y <= gmodSize.y; y++) {
 			for (int x = -gmodSize.x; x <= gmodSize.x; x++) {
+
+				Vector offset;
+				offset.x = gmodPos.x + x * size;
+				offset.y = gmodPos.y + y * size;
+				offset.z = gmodPos.z + z * size;
+
+				flexLib->addParticle(offset, gmodVel);
+			}
+
+		}
+
+	}
+
+	//remove pos, size, size, and vel
+	LUA->Pop(4);
+
+	return 0;
+}
+
+LUA_FUNCTION(SpawnSphere) {
+	//check to see if they are both vectors
+	LUA->CheckType(-4, Type::Vector); // pos
+	LUA->CheckType(-3, Type::Number); // size
+	LUA->CheckType(-2, Type::Number); // size apart (usually radius)
+	LUA->CheckType(-1, Type::Vector); // vel
+
+	//gmod Vector
+	Vector gmodPos = LUA->GetVector(-4);	//pos
+	float radius = LUA->GetNumber(-3);	//radius
+	float size = LUA->GetNumber(-2);		//size apart
+	Vector gmodVel = LUA->GetVector(-1);	//vel
+
+	for (int z = -radius; z <= radius; z++) {
+		for (int y = -radius; y <= radius; y++) {
+			for (int x = -radius; x <= radius; x++) {
+				if (x * x + y * y + z * z >= radius * radius) continue;
+
 				Vector offset;
 				offset.x = gmodPos.x + x * size;
 				offset.y = gmodPos.y + y * size;
@@ -359,7 +420,7 @@ LUA_FUNCTION(AddConcaveMesh) {
 	return 1;
 }
 
-LUA_FUNCTION(BlackHole) {
+LUA_FUNCTION(Blackhole) {
 
 	LUA->CheckType(-1, Type::Number); // radius
 	LUA->CheckType(-2, Type::Vector); // pos
@@ -367,7 +428,7 @@ LUA_FUNCTION(BlackHole) {
 	float radius = LUA->GetNumber();
 	Vector vec = LUA->GetVector(-2);
 	
-	//flexLib->removeInRadius(float3{vec.x, vec.y, vec.z}, radius * radius);
+	flexLib->removeInRadius(float3{vec.x, vec.y, vec.z}, radius * radius);
 
 	return 0;
 }
@@ -424,12 +485,6 @@ LUA_FUNCTION(UpdateParam) {
 	return 0;
 }
 
-//(doesnt actually remove all props, removes all props BUT the world)
-LUA_FUNCTION(RemoveAllProps) {
-	flexLib->removeAllProps();
-
-	return 0;
-}
 
 //called when module is opened
 GMOD_MODULE_OPEN()
@@ -443,12 +498,14 @@ GMOD_MODULE_OPEN()
 	ADD_FUNC(AddConvexMesh, "AddConvexMesh");
 	ADD_FUNC(AddConcaveMesh, "AddConcaveMesh");
 	ADD_FUNC(SpawnParticle, "SpawnParticle");
-	ADD_FUNC(RemoveAllParticles, "RemoveAll");
+	ADD_FUNC(RemoveAll, "RemoveAll");
 	ADD_FUNC(SetMeshPos, "SetMeshPos");
 	ADD_FUNC(RemoveMesh, "RemoveMesh");
 	ADD_FUNC(SpawnCube, "SpawnCube");
+	ADD_FUNC(SpawnSphere, "SpawnSphere");
 	ADD_FUNC(SpawnCubeExact, "SpawnCubeExact");
-	ADD_FUNC(RemoveAllProps, "RemoveAllProps");
+	ADD_FUNC(GetData, "GetData");
+	ADD_FUNC(Blackhole, "Blackhole");
 
 	//param funcs
 	ADD_FUNC(SetRadius, "SetRadius");

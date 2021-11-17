@@ -28,12 +28,15 @@ void flexAPI::mapBuffers() {
     simBuffers->velocities = static_cast<float3*>(NvFlexMap(velocityBuffer, eNvFlexMapWait));
     simBuffers->phases = static_cast<int*>(NvFlexMap(phaseBuffer, eNvFlexMapWait));
     simBuffers->activeIndices = static_cast<int*>(NvFlexMap(activeBuffer, eNvFlexMapWait));
-    simBuffers->geometry = static_cast<NvFlexCollisionGeometry*>(NvFlexMap(geometryBuffer, 0));
-    simBuffers->positions = static_cast<float4*>(NvFlexMap(geoPosBuffer, 0));
-    simBuffers->rotations = static_cast<float4*>(NvFlexMap(geoQuatBuffer, 0));
-    simBuffers->prevPositions = static_cast<float4*>(NvFlexMap(geoPrevPosBuffer, 0));
-    simBuffers->prevRotations = static_cast<float4*>(NvFlexMap(geoPrevQuatBuffer, 0));
-    simBuffers->flags = static_cast<int*>(NvFlexMap(geoFlagsBuffer, 0));
+    simBuffers->geometry = static_cast<NvFlexCollisionGeometry*>(NvFlexMap(geometryBuffer, eNvFlexMapWait));
+    simBuffers->positions = static_cast<float4*>(NvFlexMap(geoPosBuffer, eNvFlexMapWait));
+    simBuffers->rotations = static_cast<float4*>(NvFlexMap(geoQuatBuffer, eNvFlexMapWait));
+    simBuffers->prevPositions = static_cast<float4*>(NvFlexMap(geoPrevPosBuffer, eNvFlexMapWait));
+    simBuffers->prevRotations = static_cast<float4*>(NvFlexMap(geoPrevQuatBuffer, eNvFlexMapWait));
+    simBuffers->flags = static_cast<int*>(NvFlexMap(geoFlagsBuffer, eNvFlexMapWait));
+    simBuffers->indices = static_cast<int*>(NvFlexMap(indicesBuffer, eNvFlexMapWait));
+    simBuffers->lengths = static_cast<float*>(NvFlexMap(lengthsBuffer, eNvFlexMapWait));
+    simBuffers->coefficients = static_cast<float*>(NvFlexMap(coefficientsBuffer, eNvFlexMapWait));
 }
 
 //unmapps ALL flex buffers
@@ -48,6 +51,9 @@ void flexAPI::unmapBuffers() {
     NvFlexUnmap(geoPosBuffer);
     NvFlexUnmap(geoQuatBuffer);
     NvFlexUnmap(geoFlagsBuffer);
+    NvFlexUnmap(indicesBuffer);
+    NvFlexUnmap(lengthsBuffer);
+    NvFlexUnmap(coefficientsBuffer);
 }
 
 
@@ -87,55 +93,40 @@ void flexAPI::freeProp(int id) {
 
 }
 
-/*
-void flexAPI::removeInRadius(float3 pos, float r) {
+
+void flexAPI::removeInRadius(float3 pos, float radius) {
 
     bufferMutex->lock();
 
     if (!simValid) {
         bufferMutex->unlock();
         return;
-
     }
 
-    float4* particles = static_cast<float4*>(NvFlexMap(particleBuffer, eNvFlexMapWait));
-    float3* velocities = static_cast<float3*>(NvFlexMap(velocityBuffer, eNvFlexMapWait));
-    int* phases = static_cast<int*>(NvFlexMap(phaseBuffer, eNvFlexMapWait));
-    int* activeIndices = static_cast<int*>(NvFlexMap(activeBuffer, eNvFlexMapWait));
+    mapBuffers();
 
-    bool shiftBack = false;
-    int n = numParticles;
-    for (int i = 0; i < n; i++) {
-        if (!shiftBack) {
-            if (distance2(particles[i], pos) < r) {
-                shiftBack = true;
-                numParticles--;
-            }
-            else {
-                continue;
-            }
+    int n = 0;
+    int num = numParticles;
+    for (int i = 0; i < num; i++) {
+        if (distance2(simBuffers->particles[i], pos) >= radius) {
+            simBuffers->particles[n] = simBuffers->particles[i];
+            simBuffers->velocities[n] = simBuffers->velocities[i];
+            simBuffers->phases[n] = simBuffers->phases[i];
+            //simBuffers->activeIndices[n] = simBuffers->activeIndices[i];  //huh?
+
+            n++;
         }
-        
-        int nextIndex = i + 1;
-
-        particles[i] = particles[nextIndex];
-        velocities[i] = velocities[nextIndex];
-        phases[i] = phases[nextIndex];
-        activeIndices[i] = activeIndices[nextIndex];
-
-        
-
+        else {
+            numParticles--;
+        }
     }
 
-    NvFlexUnmap(particleBuffer);
-    NvFlexUnmap(velocityBuffer);
-    NvFlexUnmap(phaseBuffer);
-    NvFlexUnmap(activeBuffer);
+    unmapBuffers();
 
     bufferMutex->unlock();
 
 }
-*/
+
 
 void flexAPI::removeAllParticles() {
     particleQueue.clear();
@@ -176,6 +167,11 @@ flexAPI::flexAPI() {
     geoPrevPosBuffer = NvFlexAllocBuffer(flexLibrary, MAX_COLLIDERS, sizeof(float4), eNvFlexBufferHost);
     geoPrevQuatBuffer = NvFlexAllocBuffer(flexLibrary, MAX_COLLIDERS, sizeof(float4), eNvFlexBufferHost);
 
+    //spring buffers
+    indicesBuffer = NvFlexAllocBuffer(flexLibrary, flexSolverDesc.maxParticles, sizeof(int), eNvFlexBufferHost);
+    lengthsBuffer = NvFlexAllocBuffer(flexLibrary, flexSolverDesc.maxParticles, sizeof(float), eNvFlexBufferHost);
+    coefficientsBuffer = NvFlexAllocBuffer(flexLibrary, flexSolverDesc.maxParticles, sizeof(float), eNvFlexBufferHost);
+
     // Host buffer
     particleBufferHost = static_cast<float4*>(malloc(sizeof(float4) * flexSolverDesc.maxParticles));
 
@@ -210,6 +206,9 @@ flexAPI::~flexAPI() {
         NvFlexFreeBuffer(geoFlagsBuffer);
         NvFlexFreeBuffer(geoPrevPosBuffer);
         NvFlexFreeBuffer(geoPrevQuatBuffer);
+        NvFlexFreeBuffer(indicesBuffer);
+        NvFlexFreeBuffer(lengthsBuffer);
+        NvFlexFreeBuffer(coefficientsBuffer);
         
         delete flexParams;
 
