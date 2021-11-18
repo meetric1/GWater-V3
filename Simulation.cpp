@@ -81,6 +81,7 @@ void flexAPI::flexSolveThread() {
 		NvFlexSetActiveCount(flexSolver, numParticles);
 		NvFlexSetShapes(flexSolver, geometryBuffer, geoPosBuffer, geoQuatBuffer, geoPrevPosBuffer, geoPrevQuatBuffer, geoFlagsBuffer, propCount);
 		NvFlexSetParams(flexSolver, flexParams);
+		NvFlexExtSetForceFields(forceFieldData->forceFieldCallback, forceFieldData->forceFieldBuffer, forceFieldData->forceFieldCount);
 
 		//grab end time
 		std::chrono::steady_clock::time_point curtimeEnd = std::chrono::high_resolution_clock::now();

@@ -433,6 +433,28 @@ LUA_FUNCTION(Blackhole) {
 	return 0;
 }
 
+LUA_FUNCTION(SpawnForceField) {
+	LUA->CheckType(-1, Type::Number); // type
+	LUA->CheckType(-2, Type::Bool); // linear
+	LUA->CheckType(-3, Type::Number);  // strength
+	LUA->CheckType(-4, Type::Number);  // radius
+	LUA->CheckType(-5, Type::Vector);  // pos
+
+	flexLib->addForceField(LUA->GetVector(-5), LUA->GetNumber(-4), LUA->GetNumber(-3), LUA->GetBool(-2), LUA->GetNumber(-1));
+
+	LUA->Pop(5);
+	return 0;
+}
+
+LUA_FUNCTION(RemoveForceField) {
+	LUA->CheckType(-1, Type::Number); // ID of forcefield
+
+	flexLib->deleteForceField(LUA->GetNumber(-1));
+
+	LUA->Pop(1);
+	return 0;
+}
+
 LUA_FUNCTION(SetMeshPos) {
 
 	if (!simValid) return 0;
@@ -506,6 +528,8 @@ GMOD_MODULE_OPEN()
 	ADD_FUNC(SpawnCubeExact, "SpawnCubeExact");
 	ADD_FUNC(GetData, "GetData");
 	ADD_FUNC(Blackhole, "Blackhole");
+	ADD_FUNC(SpawnForceField, "SpawnForceField");
+	ADD_FUNC(RemoveForceField, "RemoveForceField");
 
 	//param funcs
 	ADD_FUNC(SetRadius, "SetRadius");

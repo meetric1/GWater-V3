@@ -49,6 +49,11 @@ struct SimBuffers {
     float* coefficients;
 };
 
+struct ForceFieldData {
+    NvFlexExtForceFieldCallback* forceFieldCallback;
+    NvFlexExtForceField* forceFieldBuffer;
+    int forceFieldCount;
+};
 
 
 class flexAPI {
@@ -75,6 +80,8 @@ class flexAPI {
     NvFlexParams* flexParams;
     NvFlexSolverDesc flexSolverDesc;
 
+    ForceFieldData* forceFieldData;
+
     std::vector<Prop> props;
     std::vector<Particle> particleQueue;
     std::map<std::string, float*> flexMap;
@@ -100,6 +107,9 @@ public:
     void removeInRadius(float3 pos, float radius);
 
     void addCloth(GarrysMod::Lua::ILuaBase* LUA, size_t tableLen);
+
+    void addForceField(Vector pos, float radius, float strength, bool linear, int type);
+    void deleteForceField(int ID);
 
     void mapBuffers();
     void unmapBuffers();

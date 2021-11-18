@@ -2,6 +2,7 @@
 #include "declarations.h"
 
 #define MAX_COLLIDERS 1024
+#define MAX_PARTICLES 65536
 
 //tysm this was very useful for debugging
 void gjelly_error(NvFlexErrorSeverity type, const char* msg, const char* file, int line) {
@@ -127,6 +128,55 @@ void flexAPI::removeInRadius(float3 pos, float radius) {
 
 }
 
+void flexAPI::addForceField(Vector pos, float radius, float strength, bool linear, int type) {
+    bufferMutex->lock();
+    if (!simValid) {
+        bufferMutex->unlock();
+        return;
+    }
+
+    //force field count
+    int ffcount = forceFieldData->forceFieldCount;
+
+    //add forcefield
+    switch (type) {
+        case 2:
+            forceFieldData->forceFieldBuffer[ffcount].mMode = NvFlexExtForceMode::eNvFlexExtModeImpulse;
+            break;
+        case 3:
+            forceFieldData->forceFieldBuffer[ffcount].mMode = NvFlexExtForceMode::eNvFlexExtModeVelocityChange;
+            break;
+        default:
+            forceFieldData->forceFieldBuffer[ffcount].mMode = NvFlexExtForceMode::eNvFlexExtModeForce;
+    }
+ 
+    forceFieldData->forceFieldBuffer[ffcount].mPosition[0] = pos.x;
+    forceFieldData->forceFieldBuffer[ffcount].mPosition[1] = pos.y;
+    forceFieldData->forceFieldBuffer[ffcount].mPosition[2] = pos.z;
+    forceFieldData->forceFieldBuffer[ffcount].mRadius = radius;
+    forceFieldData->forceFieldBuffer[ffcount].mStrength = strength;
+    forceFieldData->forceFieldBuffer[ffcount].mLinearFalloff = linear;
+
+    forceFieldData->forceFieldCount++;
+
+    bufferMutex->unlock();
+}
+
+
+void flexAPI::deleteForceField(int ID) {
+    bufferMutex->lock();
+    if (!simValid) {
+        bufferMutex->unlock();
+        return;
+    }
+
+    forceFieldData->forceFieldCount--;
+    for (int i = ID; i < forceFieldData->forceFieldCount; i++) {
+        forceFieldData->forceFieldBuffer[i] = forceFieldData->forceFieldBuffer[i + 1];
+    }
+
+    bufferMutex->unlock();
+}
 
 void flexAPI::removeAllParticles() {
     particleQueue.clear();
@@ -142,7 +192,7 @@ flexAPI::flexAPI() {
     flexLibrary = NvFlexInit(NV_FLEX_VERSION, gjelly_error);
 
     NvFlexSetSolverDescDefaults(&flexSolverDesc);
-    flexSolverDesc.maxParticles = 65536;
+    flexSolverDesc.maxParticles = MAX_PARTICLES;
     flexSolverDesc.maxDiffuseParticles = 0;
 
     flexParams = new NvFlexParams();
@@ -179,6 +229,12 @@ flexAPI::flexAPI() {
     bufferMutex = new std::mutex();
     simBuffers = new SimBuffers{};
 
+    //forcefield struct
+    forceFieldData = new ForceFieldData{};
+    forceFieldData->forceFieldCallback = NvFlexExtCreateForceFieldCallback(flexSolver);
+    forceFieldData->forceFieldCount = 1;
+    forceFieldData->forceFieldBuffer = new NvFlexExtForceField[64];
+    
     // Launch our flex solver thread
     std::thread(&flexAPI::flexSolveThread, this).detach();
 }
@@ -209,6 +265,8 @@ flexAPI::~flexAPI() {
         NvFlexFreeBuffer(indicesBuffer);
         NvFlexFreeBuffer(lengthsBuffer);
         NvFlexFreeBuffer(coefficientsBuffer);
+
+        NvFlexExtDestroyForceFieldCallback(forceFieldData->forceFieldCallback);
         
         delete flexParams;
 
