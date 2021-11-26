@@ -94,7 +94,6 @@ void flexAPI::freeProp(int id) {
 
 }
 
-
 void flexAPI::removeInRadius(float3 pos, float radius) {
 
     bufferMutex->lock();
@@ -129,46 +128,53 @@ void flexAPI::removeInRadius(float3 pos, float radius) {
 }
 
 void flexAPI::addForceField(Vector pos, float radius, float strength, bool linear, int type) {
-    bufferMutex->lock();
-    if (!simValid) {
-        bufferMutex->unlock();
-        return;
-    }
-
     //force field count
     int ffcount = forceFieldData->forceFieldCount;
 
+    if (ffcount > 64) return;
+
     //add forcefield
-    switch (type) {
-        case 2:
-            forceFieldData->forceFieldBuffer[ffcount].mMode = NvFlexExtForceMode::eNvFlexExtModeImpulse;
-            break;
-        case 3:
-            forceFieldData->forceFieldBuffer[ffcount].mMode = NvFlexExtForceMode::eNvFlexExtModeVelocityChange;
-            break;
-        default:
-            forceFieldData->forceFieldBuffer[ffcount].mMode = NvFlexExtForceMode::eNvFlexExtModeForce;
-    }
- 
+
+    //NvFlexExtForceMode::eNvFlexExtModeForce               //0
+    //NvFlexExtForceMode::eNvFlexExtModeImpulse             //1
+    //NvFlexExtForceMode::eNvFlexExtModeVelocityChange      //2
+    
     forceFieldData->forceFieldBuffer[ffcount].mPosition[0] = pos.x;
     forceFieldData->forceFieldBuffer[ffcount].mPosition[1] = pos.y;
     forceFieldData->forceFieldBuffer[ffcount].mPosition[2] = pos.z;
     forceFieldData->forceFieldBuffer[ffcount].mRadius = radius;
     forceFieldData->forceFieldBuffer[ffcount].mStrength = strength;
     forceFieldData->forceFieldBuffer[ffcount].mLinearFalloff = linear;
+    forceFieldData->forceFieldBuffer[ffcount].mMode = static_cast<NvFlexExtForceMode>(type); 
 
     forceFieldData->forceFieldCount++;
-
-    bufferMutex->unlock();
 }
 
 
+void flexAPI::setForceFieldPos(int ID, Vector pos) {
+    //no need to lock buffers as we are not editing anything directly
+    forceFieldData->forceFieldBuffer[ID].mPosition[0] = pos.x;
+    forceFieldData->forceFieldBuffer[ID].mPosition[1] = pos.y;
+    forceFieldData->forceFieldBuffer[ID].mPosition[2] = pos.z;
+
+}
+
+void flexAPI::editForceField(int ID, float radius, float strength, bool linear, int type) {
+    forceFieldData->forceFieldBuffer[ID].mRadius = radius;
+    forceFieldData->forceFieldBuffer[ID].mStrength = strength;
+    forceFieldData->forceFieldBuffer[ID].mLinearFalloff = linear;
+    forceFieldData->forceFieldBuffer[ID].mMode = static_cast<NvFlexExtForceMode>(type);
+}
+
 void flexAPI::deleteForceField(int ID) {
+    //lock for this one because we are iterating through the entire array
     bufferMutex->lock();
     if (!simValid) {
         bufferMutex->unlock();
         return;
     }
+
+    if (ID > 64) ID = 64;
 
     forceFieldData->forceFieldCount--;
     for (int i = ID; i < forceFieldData->forceFieldCount; i++) {
@@ -232,7 +238,7 @@ flexAPI::flexAPI() {
     //forcefield struct
     forceFieldData = new ForceFieldData{};
     forceFieldData->forceFieldCallback = NvFlexExtCreateForceFieldCallback(flexSolver);
-    forceFieldData->forceFieldCount = 1;
+    forceFieldData->forceFieldCount = 0;
     forceFieldData->forceFieldBuffer = new NvFlexExtForceField[64];
     
     // Launch our flex solver thread

@@ -110,6 +110,8 @@ public:
 
     void addForceField(Vector pos, float radius, float strength, bool linear, int type);
     void deleteForceField(int ID);
+    void setForceFieldPos(int ID, Vector pos);
+    void editForceField(int ID, float radius, float strength, bool linear, int type);
 
     void mapBuffers();
     void unmapBuffers();

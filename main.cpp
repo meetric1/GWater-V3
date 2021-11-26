@@ -327,9 +327,8 @@ LUA_FUNCTION(SpawnCubeExact) {
 	return 0;
 }
 
-//the world mesh
+//mesh creation funcs
 LUA_FUNCTION(AddConvexMesh) {
-
 	LUA->CheckType(-1, Type::Vector); // Max
 	LUA->CheckType(-2, Type::Vector); // Min
 	LUA->CheckType(-3, Type::Table);  // Sorted verts
@@ -377,9 +376,7 @@ LUA_FUNCTION(AddConvexMesh) {
 
 }
 
-
 LUA_FUNCTION(AddConcaveMesh) {
-
 	LUA->CheckType(-1, Type::Vector); // Max
 	LUA->CheckType(-2, Type::Vector); // Min
 	LUA->CheckType(-3, Type::Table);  // Sorted verts
@@ -420,8 +417,8 @@ LUA_FUNCTION(AddConcaveMesh) {
 	return 1;
 }
 
+//Removes particles in a radius
 LUA_FUNCTION(Blackhole) {
-
 	LUA->CheckType(-1, Type::Number); // radius
 	LUA->CheckType(-2, Type::Vector); // pos
 
@@ -433,6 +430,7 @@ LUA_FUNCTION(Blackhole) {
 	return 0;
 }
 
+//Forcefield functions
 LUA_FUNCTION(SpawnForceField) {
 	LUA->CheckType(-1, Type::Number); // type
 	LUA->CheckType(-2, Type::Bool); // linear
@@ -446,19 +444,40 @@ LUA_FUNCTION(SpawnForceField) {
 	return 0;
 }
 
+LUA_FUNCTION(EditForceField) {
+	LUA->CheckType(-1, Type::Number); // type
+	LUA->CheckType(-2, Type::Bool); // linear
+	LUA->CheckType(-3, Type::Number);  // strength
+	LUA->CheckType(-4, Type::Number);  // radius
+	LUA->CheckType(-5, Type::Number);  // ID
+
+	flexLib->editForceField(LUA->GetNumber(-5), LUA->GetNumber(-4), LUA->GetNumber(-3), LUA->GetBool(-2), LUA->GetNumber(-1));
+
+	LUA->Pop(5);
+
+	return 0;
+}
+
+LUA_FUNCTION(SetForceFieldPos) {
+	LUA->CheckType(-1, Type::Vector); // id
+	LUA->CheckType(-2, Type::Number); // pos
+
+	flexLib->setForceFieldPos(LUA->GetNumber(-2), LUA->GetVector(-1));
+
+	LUA->Pop(2);
+	return 0;
+}
+
 LUA_FUNCTION(RemoveForceField) {
 	LUA->CheckType(-1, Type::Number); // ID of forcefield
 
 	flexLib->deleteForceField(LUA->GetNumber(-1));
 
-	LUA->Pop(1);
+	LUA->Pop();
 	return 0;
 }
 
 LUA_FUNCTION(SetMeshPos) {
-
-	if (!simValid) return 0;
-
 	LUA->CheckType(-1, Type::Number); // ID
 	LUA->CheckType(-2, Type::Angle); // Ang pyr
 	LUA->CheckType(-3, Type::Vector); // pos
@@ -530,6 +549,8 @@ GMOD_MODULE_OPEN()
 	ADD_FUNC(Blackhole, "Blackhole");
 	ADD_FUNC(SpawnForceField, "SpawnForceField");
 	ADD_FUNC(RemoveForceField, "RemoveForceField");
+	ADD_FUNC(SetForceFieldPos, "SetForceFieldPos");
+	ADD_FUNC(EditForceField, "EditForceField");
 
 	//param funcs
 	ADD_FUNC(SetRadius, "SetRadius");

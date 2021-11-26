@@ -52,7 +52,6 @@ void flexAPI::addMeshConvex(GarrysMod::Lua::ILuaBase* LUA, const float* minFloat
         //calculate distance for flex plane
         float d = cross.x * verts[0].x + cross.y * verts[0].y + cross.z * verts[0].z;
         hostVerts[i / 3] = float4{ -cross.x, -cross.y, -cross.z, d };
-
     }
 
     //make sure to unmap the verts
@@ -118,7 +117,6 @@ void flexAPI::addMeshConcave(GarrysMod::Lua::ILuaBase* LUA, const float* minFloa
             int host = hostIndices[i];
             hostIndices[i] = hostIndices[i - 1];
             hostIndices[i - 1] = host;
-
         }
 
         LUA->Pop(); //pop pos
@@ -154,8 +152,8 @@ void flexAPI::addMeshConcave(GarrysMod::Lua::ILuaBase* LUA, const float* minFloa
 }
 
 //generate a TRIANGLE mesh for flex
-//void flexAPI::addCloth(GarrysMod::Lua::ILuaBase* LUA, size_t tableLen) {
+/*void flexAPI::addCloth(GarrysMod::Lua::ILuaBase* LUA, size_t tableLen) {
+    buffer.assign()
+    NvFlexExtCreateTearingClothFromMesh((float*)&g_buffers->positions[0], int(g_buffers->positions.size()), int(g_buffers->positions.size()) + g_numExtraParticles, (int*)&mesh->m_indices[0], mesh->GetNumFaces(), 0.8f, 0.8f, 0.0f);
 
-//    NvFlexExtCreateClothFromMesh(const float* particles, int numParticles, const int* indices, int numTriangles, float stretchStiffness, float bendStiffness, float tetherStiffness, float tetherGive, float pressure)
-
-//}
+}*/
