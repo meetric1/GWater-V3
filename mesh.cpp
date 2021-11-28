@@ -20,9 +20,9 @@ void flexAPI::addMeshConvex(GarrysMod::Lua::ILuaBase* LUA, const float* minFloat
     //prop decleration
     Prop p = Prop{};
     p.pos = float4{};
-    p.ang = float4{ 0.0f, 0.0f, 0.0f, 0.01f };
+    p.ang = float4{ 0.0f, 0.0f, 0.0f, 1.0f };
     p.lastPos = float4{};
-    p.lastAng = float4{ 0.0f, 0.0f, 0.0f, 0.01f };
+    p.lastAng = float4{ 0.0f, 0.0f, 0.0f, 1.0f };
     p.verts = NvFlexAllocBuffer(flexLibrary, tableLen, sizeof(float4), eNvFlexBufferHost);
 
     float4* hostVerts = static_cast<float4*>(NvFlexMap(p.verts, eNvFlexMapWait));
@@ -72,9 +72,9 @@ void flexAPI::addMeshConvex(GarrysMod::Lua::ILuaBase* LUA, const float* minFloat
     simBuffers->geometry[propCount].convexMesh.scale[1] = 1.0f;
     simBuffers->geometry[propCount].convexMesh.scale[2] = 1.0f;
     simBuffers->positions[propCount] = float4{};
-    simBuffers->rotations[propCount] = float4{ 0.0f, 0.0f, 0.0f, 0.01f };	//NEVER SET ROTATION TO 0,0,0,0, FLEX *HATES* IT!
+    simBuffers->rotations[propCount] = float4{ 0.0f, 0.0f, 0.0f, 1.0f };	//NEVER SET ROTATION TO 0,0,0,0, FLEX *HATES* IT!
     simBuffers->prevPositions[propCount] = float4{};
-    simBuffers->prevRotations[propCount] = float4{ 0.0f, 0.0f, 0.0f, 0.01f };
+    simBuffers->prevRotations[propCount] = float4{ 0.0f, 0.0f, 0.0f, 1.0f };
 
     unmapBuffers();
 
@@ -88,9 +88,9 @@ void flexAPI::addMeshConcave(GarrysMod::Lua::ILuaBase* LUA, const float* minFloa
     //prop decleration
     Prop p = Prop{};
     p.pos = float4{};
-    p.ang = float4{ 0.0f, 0.0f, 0.0f, 0.01f };
+    p.ang = float4{ 0.0f, 0.0f, 0.0f, 1.0f };
     p.lastPos = float4{};
-    p.lastAng = float4{ 0.0f, 0.0f, 0.0f, 0.01f };
+    p.lastAng = float4{ 0.0f, 0.0f, 0.0f, 1.0f };
     p.verts = NvFlexAllocBuffer(flexLibrary, tableLen, sizeof(float4), eNvFlexBufferHost);
     p.indices = NvFlexAllocBuffer(flexLibrary, tableLen, sizeof(int), eNvFlexBufferHost);
 
@@ -140,9 +140,9 @@ void flexAPI::addMeshConcave(GarrysMod::Lua::ILuaBase* LUA, const float* minFloa
     simBuffers->geometry[propCount].triMesh.scale[1] = 1.0f;
     simBuffers->geometry[propCount].triMesh.scale[2] = 1.0f;
     simBuffers->positions[propCount] = float4{};
-    simBuffers->rotations[propCount] = float4{ 0.0f, 0.0f, 0.0f, 0.01f };	//NEVER SET ROTATION TO 0,0,0,0, FLEX *HATES* IT!
+    simBuffers->rotations[propCount] = float4{ 0.0f, 0.0f, 0.0f, 1.0f };	//NEVER SET ROTATION TO 0,0,0,0, FLEX *HATES* IT!
     simBuffers->prevPositions[propCount] = float4{};
-    simBuffers->prevRotations[propCount] = float4{ 0.0f, 0.0f, 0.0f, 0.01f };
+    simBuffers->prevRotations[propCount] = float4{ 0.0f, 0.0f, 0.0f, 1.0f };
 
     unmapBuffers();
 
