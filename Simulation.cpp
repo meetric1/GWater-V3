@@ -15,7 +15,7 @@ void flexAPI::flexSolveThread() {
 
 	//declarations
 	float simFramerate = 1.f / 60.f;	
-	int simFramerateMi = static_cast<int>(simFramerate * 1000.f);
+	int simFramerateMi = (int)(simFramerate * 1000.f);
 
 	//runs always while sim is active
 	while (simValid) {
@@ -88,7 +88,7 @@ void flexAPI::flexSolveThread() {
 		std::chrono::milliseconds diff = std::chrono::duration_cast<std::chrono::milliseconds>(curtimeEnd - curtimeStart);
 
 		// tick the solver 
-		NvFlexUpdateSolver(flexSolver, simFramerate * 8 + static_cast<float>(diff.count()) / 1000.f, 3, false);
+		NvFlexUpdateSolver(flexSolver, simFramerate * 8 + (float)(diff.count() / 1000.f), 2, false);
 		//NvFlexUpdateSolver(flexSolver, simFramerate * 8, 3, false);
 
 		// read back (async)

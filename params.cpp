@@ -15,7 +15,7 @@ void flexAPI::initParams() {
 	flexParams->wind[1] = 0.0f;
 	flexParams->wind[2] = 0.0f;
 
-	flexParams->radius = 10.f;
+	flexParams->radius = 0.f;
 	flexParams->viscosity = 0.0f;
 	flexParams->dynamicFriction = 0.5f;	//5/r
 	flexParams->staticFriction = 0.5f;
@@ -24,8 +24,8 @@ void flexAPI::initParams() {
 	flexParams->drag = 0.0f;
 	flexParams->lift = 1.0f;
 	flexParams->numIterations = 2;
-	flexParams->fluidRestDistance = 7.5f;
-	flexParams->solidRestDistance = 5.f;
+	flexParams->fluidRestDistance = 0.f;
+	flexParams->solidRestDistance = 0.f;
 
 	flexParams->anisotropyScale = 0.0f;
 	flexParams->anisotropyMin = 0.0f;
@@ -34,9 +34,9 @@ void flexAPI::initParams() {
 
 	flexParams->dissipation = 0.01f;
 	flexParams->damping = 0.0f;
-	flexParams->particleCollisionMargin = 5.f;
-	flexParams->shapeCollisionMargin = 2.5f;
-	flexParams->collisionDistance = 5.0f; // Needed for tri-particle intersection
+	flexParams->particleCollisionMargin = 0.f;
+	flexParams->shapeCollisionMargin = 0.f;
+	flexParams->collisionDistance = 0.f; // Needed for tri-particle intersection
 	flexParams->sleepThreshold = 0.1f;
 	flexParams->shockPropagation = 0.0f;
 	flexParams->restitution = 1.0f;

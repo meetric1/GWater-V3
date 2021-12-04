@@ -13,6 +13,8 @@ int numParticles = 0;
 int propCount = 0;
 bool simValid = true;
 
+#define MAX_DISTANCE_SQRD pow(5000, 2)
+
 //overloaded printlua func
 void printLua(std::string text)
 {
@@ -39,14 +41,13 @@ float rad(float degree) {
 	return (degree * (_PI / 180));
 }
 
-//oh my ucking god kill me
 float4 getQuatMul(float4 lhs, float4 rhs) {
-	return float4{
+	return float4(
 		lhs.x * rhs.x - lhs.y * rhs.y - lhs.z * rhs.z - lhs.w * rhs.w,
 		lhs.x * rhs.y + lhs.y * rhs.x + lhs.z * rhs.w - lhs.w * rhs.z,
 		lhs.x * rhs.z + lhs.z * rhs.x + lhs.w * rhs.y - lhs.y * rhs.w,
 		lhs.x * rhs.w + lhs.w * rhs.x + lhs.y * rhs.z - lhs.z * rhs.y
-	};
+	);
 }
 
 float4 quatFromAngleComponents(float p, float y, float r) {
@@ -54,9 +55,9 @@ float4 quatFromAngleComponents(float p, float y, float r) {
 	y = rad(y) * 0.5;
 	r = rad(r) * 0.5;
 
-	float4 q_x = float4{ static_cast<float>(cos(y)), 0, 0, static_cast<float>(sin(y)) };
-	float4 q_y = float4{ static_cast<float>(cos(p)), 0, static_cast<float>(sin(p)), 0 };
-	float4 q_z = float4{ static_cast<float>(cos(r)), static_cast<float>(sin(r)), 0, 0 };
+	float4 q_x = float4((float)cos(y), 0, 0, (float)sin(y));
+	float4 q_y = float4((float)cos(p), 0, (float)sin(p), 0);
+	float4 q_z = float4((float)cos(r), (float)sin(r), 0, 0);
 
 	return getQuatMul(q_x, getQuatMul(q_y, q_z));
 }
@@ -67,30 +68,24 @@ float4 quatFromAngle(QAngle ang) {
 }
 
 float4 unfuckQuat(float4 q) {
-	return float4{ q.y, q.z, q.w, q.x };
+	return float4(q.y, q.z, q.w, q.x);
 }
 
 
 #define ADD_FUNC(funcName, tblName) GlobalLUA->PushCFunction(funcName); GlobalLUA->SetField(-2, tblName);
 
 //random extras
-float distance2(float4 a, float3 b) {
-	float x = b.x - a.x;
-	float y = b.y - a.y;
-	float z = b.z - a.z;
 
-	return (x * x + y * y + z * z);
+//distance squared
+float distance2(float3 a, float3 b) {
+	float3 sub = a - b;
+	return (sub.x * sub.x + sub.y * sub.y + sub.z * sub.z);
 }
 
-
+// dot product
 float dot(float3 a, float3 b) {
 	return a.x * b.x + a.y * b.y + a.z * b.z;
 }
-
-float3 subtractFloat34(float4 a, float3 b) {
-	return float3{ a.x - b.x, a.y - b.y, a.z - b.z };
-}
-
 
 
 ////////// LUA FUNCTIONS /////////////
@@ -102,11 +97,8 @@ LUA_FUNCTION(RenderParticles) {
 	LUA->CheckType(-1, Type::Vector);
 	LUA->CheckType(-2, Type::Vector);
 
-	Vector gmodDir = LUA->GetVector();
-	float3 dir = float3{ gmodDir.x, gmodDir.y, gmodDir.z };
-
-	Vector gmodPos = LUA->GetVector(-2);
-	float3 pos = float3{ gmodPos.x, gmodPos.y, gmodPos.z };
+	float3 dir = float3(LUA->GetVector());
+	float3 pos = float3(LUA->GetVector(-2));
 
 	LUA->Pop(2);
 
@@ -117,9 +109,9 @@ LUA_FUNCTION(RenderParticles) {
 
 	//loop thru all particles, any that we cannot see are not sent to gmod
 	for (int i = 0; i < numParticles; i++) {
-		float4 thisPos = particleBufferHost[i];
+		float3 thisPos = float3(particleBufferHost[i]);
 
-		if (dot(subtractFloat34(thisPos, pos), dir) < 0 || distance2(thisPos, pos) > 25000000) {
+		if (dot(thisPos - pos, dir) < 0 || distance2(thisPos, pos) > MAX_DISTANCE_SQRD) {
 			continue;
 		}
 
@@ -157,7 +149,7 @@ LUA_FUNCTION(GetData) {
 		gmodPos.y = thisPos.y;
 		gmodPos.z = thisPos.z;
 
-		LUA->PushNumber(static_cast<double>(i) + 1);
+		LUA->PushNumber((double)i + 1);
 		LUA->PushVector(gmodPos);
 		LUA->SetTable(-3);
 	}
@@ -184,7 +176,7 @@ LUA_FUNCTION(RemoveAll) {
 //sets radius of particles
 LUA_FUNCTION(SetRadius) {
 	LUA->CheckType(-1, Type::Number);
-	flexLib->initParamsRadius(static_cast<float>(LUA->GetNumber()));
+	flexLib->initParamsRadius((float)LUA->GetNumber());
 	LUA->Pop();
 	return 0;
 }
@@ -423,9 +415,47 @@ LUA_FUNCTION(Blackhole) {
 	LUA->CheckType(-2, Type::Vector); // pos
 
 	float radius = LUA->GetNumber();
-	Vector vec = LUA->GetVector(-2);
+	Vector pos = LUA->GetVector(-2);
 	
-	flexLib->removeInRadius(float3{vec.x, vec.y, vec.z}, radius * radius);
+	flexLib->removeInRadius(float3(pos), radius);
+
+	return 0;
+}
+
+// Andrew: this applies force to particles in an area
+LUA_FUNCTION(ApplyForce) {
+	LUA->CheckType(1, Type::Vector); // pos
+	LUA->CheckType(2, Type::Vector); // vel
+	LUA->CheckType(3, Type::Number); // radius
+	LUA->CheckType(4, Type::Bool); // linear?
+	// if it's linear then particles at Radius position get the weakest force while the closest to Pos get the strongest
+	// if it's not then every particle in that radius gets the same force
+
+	Vector pos = LUA->GetVector(1); 
+	Vector vel = LUA->GetVector(2);
+	float radius = LUA->GetNumber(3);
+	bool linear = LUA->GetBool(4);
+
+	flexLib->applyForce(float3(pos), float3(vel), radius, linear);
+
+	return 0;
+}
+
+// this will help with simulating explosions and stuff affecting water
+LUA_FUNCTION(ApplyForceOutwards) {
+	LUA->CheckType(1, Type::Vector); // pos
+	LUA->CheckType(2, Type::Number); // force
+	LUA->CheckType(3, Type::Number); // radius
+	LUA->CheckType(4, Type::Bool); // linear?
+	// if it's linear then particles at Radius position get the weakest force while the closest to Pos get the strongest
+	// if it's not then every particle in that radius gets the same force
+
+	Vector pos = LUA->GetVector(1); 
+	float force = LUA->GetNumber(2);
+	float radius = LUA->GetNumber(3);
+	bool linear = LUA->GetBool(4);
+
+	flexLib->applyForceOutwards(float3(pos), force, radius, linear);
 
 	return 0;
 }
@@ -482,12 +512,12 @@ LUA_FUNCTION(SetMeshPos) {
 	LUA->CheckType(-2, Type::Angle); // Ang pyr
 	LUA->CheckType(-3, Type::Vector); // pos
 
-	int id = static_cast<int>(LUA->GetNumber(-1));	//lua is 1 indexed
+	int id = (int)LUA->GetNumber(-1);	//lua is 1 indexed
 	QAngle gmodAng = LUA->GetAngle(-2);
 	Vector gmodPos = LUA->GetVector(-3);
 
-	// 1.f/50000.f inverse mass?
-	flexLib->updateMeshPos(float4{ gmodPos.x, gmodPos.y, gmodPos.z, 1.f / 50000.f }, unfuckQuat(quatFromAngle(gmodAng)), id);
+	// 50000 is max gmod weight
+	flexLib->updateMeshPos(float4(gmodPos, 1.f / 50000.f), unfuckQuat(quatFromAngle(gmodAng)), id);
 
 	LUA->Pop(3);	//pop id, ang, pos
 	return 0;
@@ -496,7 +526,7 @@ LUA_FUNCTION(SetMeshPos) {
 
 LUA_FUNCTION(RemoveMesh) {
 	LUA->CheckType(-1, Type::Number); // ID
-	int id = static_cast<int>(LUA->GetNumber());	
+	int id = (int)LUA->GetNumber();	
 
 	bufferMutex->lock();
 	if (!simValid) {
@@ -547,6 +577,8 @@ GMOD_MODULE_OPEN()
 	ADD_FUNC(SpawnCubeExact, "SpawnCubeExact");
 	ADD_FUNC(GetData, "GetData");
 	ADD_FUNC(Blackhole, "Blackhole");
+	ADD_FUNC(ApplyForce, "ApplyForce");
+	ADD_FUNC(ApplyForceOutwards, "ApplyForceOutwards");
 	ADD_FUNC(SpawnForceField, "SpawnForceField");
 	ADD_FUNC(RemoveForceField, "RemoveForceField");
 	ADD_FUNC(SetForceFieldPos, "SetForceFieldPos");

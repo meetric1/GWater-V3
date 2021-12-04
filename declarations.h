@@ -20,4 +20,5 @@ extern bool simValid;
 
 extern void printLua(std::string text);
 extern void printLua(char*);
-extern float distance2(float4 a, float3 b);
+extern float distance2(float3 a, float3 b);
+extern float3 normalize(float3 v);
