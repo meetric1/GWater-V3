@@ -90,12 +90,9 @@ void flexAPI::freeProp(int id) {
 
     props.pop_back();
     propCount--;
-
-
 }
 
 void flexAPI::removeInRadius(float3 pos, float radius) {
-
     bufferMutex->lock();
 
     if (!simValid) {
@@ -124,7 +121,49 @@ void flexAPI::removeInRadius(float3 pos, float radius) {
     unmapBuffers();
 
     bufferMutex->unlock();
+}
 
+void flexAPI::applyForce(float3 pos, float3 vel, float radius, bool linear){
+    bufferMutex->lock();
+    if (!simValid) {
+        bufferMutex->unlock();
+        return;
+    }
+
+    mapBuffers();
+    int num = numParticles;
+    for (int i = 0; i < num; i++) {
+        float dist = distance2(simBuffers->particles[i], pos);
+        float theta = 1 - dist / radius;
+        if (dist <= radius) {
+            simBuffers->velocities[i] = simBuffers->velocities[i] + vel * (linear ? theta : 1);
+        }
+    }
+    unmapBuffers();
+
+    bufferMutex->unlock();
+}
+
+void flexAPI::applyForceOutwards(float3 pos, float strength, float radius, bool linear) {
+    bufferMutex->lock();
+    if (!simValid) {
+        bufferMutex->unlock();
+        return;
+    }
+
+    mapBuffers();
+    int num = numParticles;
+    for (int i = 0; i < num; i++) {
+        float dist = distance2(simBuffers->particles[i], pos);
+        float theta = 1 - dist / radius;
+        float3 vel = normalizeA(pos - fourToThree(simBuffers->particles[i])) * strength;
+        if (dist <= radius) {
+            simBuffers->velocities[i] = simBuffers->velocities[i] + vel * (linear ? theta : 1);
+        }
+    }
+    unmapBuffers();
+
+    bufferMutex->unlock();
 }
 
 void flexAPI::addForceField(Vector pos, float radius, float strength, bool linear, int type) {

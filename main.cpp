@@ -35,6 +35,7 @@ void printLua(char* text)
 ////////QUAT LIB//////////
 
 #define _PI 3.14159265358979323846
+
 float rad(float degree) {
 	return (degree * (_PI / 180));
 }
@@ -82,6 +83,13 @@ float distance2(float4 a, float3 b) {
 	return (x * x + y * y + z * z);
 }
 
+float vlen(float3 vec) {
+	return sqrt(vec.x * vec.x + vec.y * vec.y + vec.z * vec.z);
+}
+
+float3 normalizeA(float3 vec) {
+	return vec / vlen(vec);
+}
 
 float dot(float3 a, float3 b) {
 	return a.x * b.x + a.y * b.y + a.z * b.z;
@@ -89,6 +97,11 @@ float dot(float3 a, float3 b) {
 
 float3 subtractFloat34(float4 a, float3 b) {
 	return float3{ a.x - b.x, a.y - b.y, a.z - b.z };
+}
+
+//A
+float3 fourToThree(float4 a) {
+	return float3(a.x, a.y, a.z);
 }
 
 
@@ -424,8 +437,47 @@ LUA_FUNCTION(Blackhole) {
 
 	float radius = LUA->GetNumber();
 	Vector vec = LUA->GetVector(-2);
-	
-	flexLib->removeInRadius(float3{vec.x, vec.y, vec.z}, radius * radius);
+
+	flexLib->removeInRadius(float3{ vec.x, vec.y, vec.z }, radius * radius);
+
+	return 0;
+}
+
+// Andrew: this applies force to particles in an area
+LUA_FUNCTION(ApplyForce) {
+	LUA->CheckType(1, Type::Vector); // pos
+	LUA->CheckType(2, Type::Vector); // vel
+	LUA->CheckType(3, Type::Number); // radius
+	LUA->CheckType(4, Type::Bool); // linear?
+	// if it's linear then particles at Radius position get the weakest force while the closest to Pos get the strongest
+	// if it's not then every particle in that radius gets the same force
+
+	Vector pos = LUA->GetVector(1); // give normal names to types, not just "vec" mee
+	Vector vel = LUA->GetVector(2);
+	float radius = LUA->GetNumber(3);
+	bool linear = LUA->GetBool(4);
+
+	// what the fuck is this radius ^ 2 hack???????? mee????????????????????????????????????
+	flexLib->applyForce(float3(pos), float3(vel), radius * radius, linear);
+
+	return 0;
+}
+
+// this will help with simulating explosions and stuff affecting water
+LUA_FUNCTION(ApplyForceOutwards) {
+	LUA->CheckType(1, Type::Vector); // pos
+	LUA->CheckType(2, Type::Number); // force
+	LUA->CheckType(3, Type::Number); // radius
+	LUA->CheckType(4, Type::Bool); // linear?
+	// if it's linear then particles at Radius position get the weakest force while the closest to Pos get the strongest
+	// if it's not then every particle in that radius gets the same force
+
+	Vector pos = LUA->GetVector(1); // give normal names to types, not just "vec" mee
+	float force = LUA->GetNumber(2);
+	float radius = LUA->GetNumber(3);
+	bool linear = LUA->GetBool(4);
+
+	flexLib->applyForceOutwards(float3(pos), force, radius * radius, linear);
 
 	return 0;
 }
@@ -547,6 +599,8 @@ GMOD_MODULE_OPEN()
 	ADD_FUNC(SpawnCubeExact, "SpawnCubeExact");
 	ADD_FUNC(GetData, "GetData");
 	ADD_FUNC(Blackhole, "Blackhole");
+	ADD_FUNC(ApplyForce, "ApplyForce");
+	ADD_FUNC(ApplyForceOutwards, "ApplyForceOutwards");
 	ADD_FUNC(SpawnForceField, "SpawnForceField");
 	ADD_FUNC(RemoveForceField, "RemoveForceField");
 	ADD_FUNC(SetForceFieldPos, "SetForceFieldPos");
