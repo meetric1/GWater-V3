@@ -14,6 +14,8 @@ int propCount = 0;
 bool simValid = true;
 
 #define MAX_DISTANCE_SQRD pow(5000, 2)
+#define GWATER_VERSION 0.0
+#define ADD_FUNC(funcName, tblName) GlobalLUA->PushCFunction(funcName); GlobalLUA->SetField(-2, tblName);
 
 //overloaded printlua func
 void printLua(std::string text)
@@ -32,49 +34,6 @@ void printLua(char* text)
 	GlobalLUA->Call(1, 0);
 	GlobalLUA->Pop();
 }
-
-
-////////QUAT LIB//////////
-
-#define _PI 3.14159265358979323846
-float rad(float degree) {
-	return (degree * (_PI / 180));
-}
-
-float4 getQuatMul(float4 lhs, float4 rhs) {
-	return float4(
-		lhs.x * rhs.x - lhs.y * rhs.y - lhs.z * rhs.z - lhs.w * rhs.w,
-		lhs.x * rhs.y + lhs.y * rhs.x + lhs.z * rhs.w - lhs.w * rhs.z,
-		lhs.x * rhs.z + lhs.z * rhs.x + lhs.w * rhs.y - lhs.y * rhs.w,
-		lhs.x * rhs.w + lhs.w * rhs.x + lhs.y * rhs.z - lhs.z * rhs.y
-	);
-}
-
-float4 quatFromAngleComponents(float p, float y, float r) {
-	p = rad(p) * 0.5;
-	y = rad(y) * 0.5;
-	r = rad(r) * 0.5;
-
-	float4 q_x = float4((float)cos(y), 0, 0, (float)sin(y));
-	float4 q_y = float4((float)cos(p), 0, (float)sin(p), 0);
-	float4 q_z = float4((float)cos(r), (float)sin(r), 0, 0);
-
-	return getQuatMul(q_x, getQuatMul(q_y, q_z));
-}
-
-
-float4 quatFromAngle(QAngle ang) {
-	return quatFromAngleComponents(ang.x, ang.y, ang.z);
-}
-
-float4 unfuckQuat(float4 q) {
-	return float4(q.y, q.z, q.w, q.x);
-}
-
-
-#define ADD_FUNC(funcName, tblName) GlobalLUA->PushCFunction(funcName); GlobalLUA->SetField(-2, tblName);
-
-//random extras
 
 //distance squared
 float distance2(float3 a, float3 b) {
@@ -106,14 +65,11 @@ LUA_FUNCTION(RenderParticles) {
 	LUA->GetField(-1, "render");
 
 	float particleRadius = flexLib->radius;
-
 	//loop thru all particles, any that we cannot see are not sent to gmod
 	for (int i = 0; i < numParticles; i++) {
 		float3 thisPos = float3(particleBufferHost[i]);
 
-		if (dot(thisPos - pos, dir) < 0 || distance2(thisPos, pos) > MAX_DISTANCE_SQRD) {
-			continue;
-		}
+		if (dot(thisPos - pos, dir) < 0 || distance2(thisPos, pos) > MAX_DISTANCE_SQRD) continue;
 
 		Vector gmodPos;
 		gmodPos.x = thisPos.x;
@@ -132,6 +88,23 @@ LUA_FUNCTION(RenderParticles) {
 	LUA->Pop(2); //pop _G and render
 	LUA->PushNumber(numParticles);
 
+	return 1;
+}
+
+LUA_FUNCTION(ParticlesNear) {
+	//get headpos
+	LUA->CheckType(-1, Type::Number);
+	LUA->CheckType(-2, Type::Vector);
+	float3 pos = float3(LUA->GetVector(-2));
+	float particleRadius = (float)pow(flexLib->radius * LUA->GetNumber(-1), 2);
+	int particlesBeside = 0;
+	for (int i = 0; i < numParticles; i++) {
+		float3 thisPos = float3(particleBufferHost[i]);
+		if (distance2(thisPos, pos) < particleRadius) {
+			particlesBeside++;
+		}
+	}
+	LUA->PushNumber(particlesBeside);
 	return 1;
 }
 
@@ -157,7 +130,6 @@ LUA_FUNCTION(GetData) {
 	return 1;
 }
 
-
 //removes all particles in the simulation
 LUA_FUNCTION(RemoveAll) {
 	bufferMutex->lock();
@@ -167,7 +139,6 @@ LUA_FUNCTION(RemoveAll) {
 	}
 	
 	flexLib->removeAllParticles();
-
 	bufferMutex->unlock();
 
 	return 0;
@@ -321,104 +292,84 @@ LUA_FUNCTION(SpawnCubeExact) {
 
 //mesh creation funcs
 LUA_FUNCTION(AddConvexMesh) {
-	LUA->CheckType(-1, Type::Vector); // Max
-	LUA->CheckType(-2, Type::Vector); // Min
-	LUA->CheckType(-3, Type::Table);  // Sorted verts
+	LUA->CheckType(-1, Type::Angle);  // prop angle
+	LUA->CheckType(-2, Type::Vector); // prop pos
+	LUA->CheckType(-3, Type::Vector); // Max
+	LUA->CheckType(-4, Type::Vector); // Min
+	LUA->CheckType(-5, Type::Table);  // Sorted verts
 
-	//obbminmax
-	Vector maxV = LUA->GetVector();
-	Vector minV = LUA->GetVector(-2);
-	float minFloat[3] = { minV.x, minV.y, minV.z };
-	float maxFloat[3] = { maxV.x, maxV.y, maxV.z };
-	LUA->Pop(2); //pop off min & max
+	//is the mesh valid?
+	size_t len = LUA->ObjLen(-5);
+	if (len < 1 || len % 3 != 0) {
+		LUA->PushBool(false);
+		return 1;
+	}
 
 	//lock buffer
 	bufferMutex->lock();
-
 	if (!simValid) {
 		bufferMutex->unlock();
 		LUA->PushBool(false);
 		return 0;
 	}
 
-	size_t len = LUA->ObjLen();
+	//flex can only handle 64 convex planes!
+	if (len / 3 <= 64) 
+		flexLib->addMeshConvex(LUA);
+	else 
+		flexLib->addMeshConcave(LUA);
 
-	//check to make sure the mesh is even valid (error models)
+	bufferMutex->unlock();
+	LUA->PushBool(true);
+
+	return 1;
+}
+
+LUA_FUNCTION(AddConcaveMesh) {
+	LUA->CheckType(-1, Type::Angle); // prop angle
+	LUA->CheckType(-2, Type::Vector); // prop pos
+	LUA->CheckType(-3, Type::Vector); // Max
+	LUA->CheckType(-4, Type::Vector); // Min
+	LUA->CheckType(-5, Type::Table);  // Sorted verts
+
+	//is the mesh valid?
+	size_t len = LUA->ObjLen(-5);
 	if (len < 1 || len % 3 != 0) {
-		bufferMutex->unlock();
-		printLua("[GWATER]: Invalid mesh given");
 		LUA->PushBool(false);
 		return 1;
 	}
 
-	if (len / 3 <= 64) {
-		flexLib->addMeshConvex(LUA, minFloat, maxFloat, LUA->ObjLen());
-		printLua("[GWATER]: Added convex mesh " + std::to_string(propCount));
-	}
-	else {
-		flexLib->addMeshConcave(LUA, minFloat, maxFloat, LUA->ObjLen());
-		printLua("[GWATER]: Too many tris for mesh " + std::to_string(propCount) + ", adding as concave mesh!");
-	}
-
-	bufferMutex->unlock();
-
-	LUA->PushBool(true);
-
-	return 1;
-
-}
-
-LUA_FUNCTION(AddConcaveMesh) {
-	LUA->CheckType(-1, Type::Vector); // Max
-	LUA->CheckType(-2, Type::Vector); // Min
-	LUA->CheckType(-3, Type::Table);  // Sorted verts
-
-	//obbminmax
-	Vector maxV = LUA->GetVector();
-	Vector minV = LUA->GetVector(-2);
-	float minFloat[3] = { minV.x, minV.y, minV.z };
-	float maxFloat[3] = { maxV.x, maxV.y, maxV.z };
-	LUA->Pop(2); //pop off min & max
-
 	//lock buffer
 	bufferMutex->lock();
-
 	if (!simValid) {
 		bufferMutex->unlock();
 		LUA->PushBool(false);
 		return 1;
 	}
 
-	size_t len = LUA->ObjLen();
-
-	//check to make sure the mesh is even valid (error models)
-	if (len < 1 || len % 3 != 0) {
-		bufferMutex->unlock();
-		printLua("[GWATER]: Invalid mesh given");
-		LUA->PushBool(false);
-		return 1;
-	}
-
-	flexLib->addMeshConcave(LUA, minFloat, maxFloat, LUA->ObjLen());
-	printLua("[GWATER]: Added concave mesh " + std::to_string(propCount));
-
+	flexLib->addMeshConcave(LUA);
 	bufferMutex->unlock();
-
 	LUA->PushBool(true);
 
 	return 1;
+}
+
+
+LUA_FUNCTION(SetMeshPos) {
+	LUA->CheckType(-1, Type::Number); // ID
+	LUA->CheckType(-2, Type::Angle); // Ang pyr
+	LUA->CheckType(-3, Type::Vector); // pos
+	flexLib->updateMeshPos(LUA->GetVector(-3), LUA->GetAngle(-2), LUA->GetNumber(-1));
+
+	LUA->Pop(3);	//pop all
+	return 0;
 }
 
 //Removes particles in a radius
 LUA_FUNCTION(Blackhole) {
 	LUA->CheckType(-1, Type::Number); // radius
 	LUA->CheckType(-2, Type::Vector); // pos
-
-	float radius = LUA->GetNumber();
-	Vector pos = LUA->GetVector(-2);
-	
-	flexLib->removeInRadius(float3(pos), radius);
-
+	flexLib->removeInRadius(LUA->GetVector(-2), LUA->GetNumber());
 	return 0;
 }
 
@@ -455,7 +406,7 @@ LUA_FUNCTION(ApplyForceOutwards) {
 	float radius = LUA->GetNumber(3);
 	bool linear = LUA->GetBool(4);
 
-	flexLib->applyForceOutwards(float3(pos), force, radius, linear);
+	flexLib->applyForceOutwards(pos, force, radius, linear);
 
 	return 0;
 }
@@ -484,14 +435,12 @@ LUA_FUNCTION(EditForceField) {
 	flexLib->editForceField(LUA->GetNumber(-5), LUA->GetNumber(-4), LUA->GetNumber(-3), LUA->GetBool(-2), LUA->GetNumber(-1));
 
 	LUA->Pop(5);
-
 	return 0;
 }
 
 LUA_FUNCTION(SetForceFieldPos) {
 	LUA->CheckType(-1, Type::Vector); // id
 	LUA->CheckType(-2, Type::Number); // pos
-
 	flexLib->setForceFieldPos(LUA->GetNumber(-2), LUA->GetVector(-1));
 
 	LUA->Pop(2);
@@ -500,44 +449,22 @@ LUA_FUNCTION(SetForceFieldPos) {
 
 LUA_FUNCTION(RemoveForceField) {
 	LUA->CheckType(-1, Type::Number); // ID of forcefield
-
 	flexLib->deleteForceField(LUA->GetNumber(-1));
 
 	LUA->Pop();
 	return 0;
 }
 
-LUA_FUNCTION(SetMeshPos) {
-	LUA->CheckType(-1, Type::Number); // ID
-	LUA->CheckType(-2, Type::Angle); // Ang pyr
-	LUA->CheckType(-3, Type::Vector); // pos
-
-	int id = (int)LUA->GetNumber(-1);	//lua is 1 indexed
-	QAngle gmodAng = LUA->GetAngle(-2);
-	Vector gmodPos = LUA->GetVector(-3);
-
-	// 50000 is max gmod weight
-	flexLib->updateMeshPos(float4(gmodPos, 1.f / 50000.f), unfuckQuat(quatFromAngle(gmodAng)), id);
-
-	LUA->Pop(3);	//pop id, ang, pos
-	return 0;
-}
-
-
 LUA_FUNCTION(RemoveMesh) {
 	LUA->CheckType(-1, Type::Number); // ID
-	int id = (int)LUA->GetNumber();	
-
 	bufferMutex->lock();
 	if (!simValid) {
 		bufferMutex->unlock();
 		return 0;
 	}
 
-	flexLib->freeProp(id);
-
+	flexLib->freeProp(LUA->GetNumber());
 	bufferMutex->unlock();
-
 	LUA->Pop();	//pop id
 
 	return 0;
@@ -546,47 +473,58 @@ LUA_FUNCTION(RemoveMesh) {
 LUA_FUNCTION(UpdateParam) {
 	LUA->CheckType(-1, Type::Number); 
 	LUA->CheckType(-2, Type::String); //ID of param
-
-	float n = LUA->GetNumber();
-	std::string str = LUA->GetString(-2);
-	flexLib->updateParam(str, n);
-
+	flexLib->updateParam(LUA->GetString(-2), LUA->GetNumber());
 	LUA->Pop(2);
 
 	return 0;
 }
 
+LUA_FUNCTION(GetModuleVersion) {
+	LUA->PushNumber(GWATER_VERSION);
+	return 1;
+}
+
 
 //called when module is opened
-GMOD_MODULE_OPEN()
-{
+GMOD_MODULE_OPEN() {
 	GlobalLUA = LUA;
 	LUA->PushSpecial(SPECIAL_GLOB);
 
 	LUA->CreateTable();
-	ADD_FUNC(RenderParticles, "RenderParticles");
-	ADD_FUNC(DeleteSimulation, "DeleteSimulation");
-	ADD_FUNC(AddConvexMesh, "AddConvexMesh");
-	ADD_FUNC(AddConcaveMesh, "AddConcaveMesh");
+	//particle creation
 	ADD_FUNC(SpawnParticle, "SpawnParticle");
-	ADD_FUNC(RemoveAll, "RemoveAll");
-	ADD_FUNC(SetMeshPos, "SetMeshPos");
-	ADD_FUNC(RemoveMesh, "RemoveMesh");
 	ADD_FUNC(SpawnCube, "SpawnCube");
 	ADD_FUNC(SpawnSphere, "SpawnSphere");
 	ADD_FUNC(SpawnCubeExact, "SpawnCubeExact");
+
+	//meshes
+	ADD_FUNC(AddConvexMesh, "AddConvexMesh");
+	ADD_FUNC(AddConcaveMesh, "AddConcaveMesh");
+	ADD_FUNC(SetMeshPos, "SetMeshPos");
+	ADD_FUNC(RemoveMesh, "RemoveMesh");
+
+	//rendering & data transfer
+	ADD_FUNC(RenderParticles, "RenderParticles");
+	ADD_FUNC(RemoveAll, "RemoveAll");
+	ADD_FUNC(ParticlesNear, "ParticlesNear");
 	ADD_FUNC(GetData, "GetData");
-	ADD_FUNC(Blackhole, "Blackhole");
-	ADD_FUNC(ApplyForce, "ApplyForce");
-	ADD_FUNC(ApplyForceOutwards, "ApplyForceOutwards");
+
+	//forces
 	ADD_FUNC(SpawnForceField, "SpawnForceField");
 	ADD_FUNC(RemoveForceField, "RemoveForceField");
 	ADD_FUNC(SetForceFieldPos, "SetForceFieldPos");
 	ADD_FUNC(EditForceField, "EditForceField");
+	ADD_FUNC(ApplyForce, "ApplyForce");
+	ADD_FUNC(ApplyForceOutwards, "ApplyForceOutwards");
 
 	//param funcs
 	ADD_FUNC(SetRadius, "SetRadius");
 	ADD_FUNC(UpdateParam, "UpdateParam");
+
+	//extras
+	ADD_FUNC(DeleteSimulation, "DeleteSimulation");
+	ADD_FUNC(Blackhole, "Blackhole");
+	ADD_FUNC(GetModuleVersion, "GetModuleVersion");
 
 	LUA->SetField(-2, "gwater");
 	LUA->Pop(); //remove _G
@@ -595,21 +533,15 @@ GMOD_MODULE_OPEN()
 	flexLib = std::make_shared<flexAPI>();
 
 	return 0;
-
 }
 
 // Called when the module is unloaded
-GMOD_MODULE_CLOSE()
-{
-
+GMOD_MODULE_CLOSE() {
 	flexLib.reset();
-
-	//set .gwater to nil
 	LUA->PushSpecial(SPECIAL_GLOB);
 	LUA->PushNil();
 	LUA->SetField(-2, "gwater");
 	LUA->Pop(); // pop _G
 
 	return 0;
-
 }

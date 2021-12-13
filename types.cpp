@@ -16,13 +16,6 @@ void flexAPI::addParticle(Vector pos, Vector vel) {
     particleQueue.push_back(particle);
 }
 
-
-//updates position of mesh `id`
-void flexAPI::updateMeshPos(float4 pos, float4 ang, int id) {
-    props[id].lastPos = pos;
-    props[id].lastAng = ang;
-}
-
 //maps ALL flex buffers
 void flexAPI::mapBuffers() {
     simBuffers->particles = (float4*)NvFlexMap(particleBuffer, eNvFlexMapWait);
@@ -193,17 +186,14 @@ void flexAPI::addForceField(Vector pos, float radius, float strength, bool linea
     forceFieldData->forceFieldBuffer[ffcount].mStrength = strength;
     forceFieldData->forceFieldBuffer[ffcount].mLinearFalloff = linear;
     forceFieldData->forceFieldBuffer[ffcount].mMode = (NvFlexExtForceMode)type;
-
     forceFieldData->forceFieldCount++;
 }
 
 
 void flexAPI::setForceFieldPos(int ID, Vector pos) {
-    //no need to lock buffers as we are not editing anything directly
     forceFieldData->forceFieldBuffer[ID].mPosition[0] = pos.x;
     forceFieldData->forceFieldBuffer[ID].mPosition[1] = pos.y;
     forceFieldData->forceFieldBuffer[ID].mPosition[2] = pos.z;
-
 }
 
 void flexAPI::editForceField(int ID, float radius, float strength, bool linear, int type) {
@@ -222,7 +212,6 @@ void flexAPI::deleteForceField(int ID) {
     }
 
     ID = std::min(ID, 64);
-
     forceFieldData->forceFieldCount--;
     for (int i = ID; i < forceFieldData->forceFieldCount; i++) {
         forceFieldData->forceFieldBuffer[i] = forceFieldData->forceFieldBuffer[i + 1];

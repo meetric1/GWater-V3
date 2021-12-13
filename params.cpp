@@ -23,7 +23,7 @@ void flexAPI::initParams() {
 	flexParams->freeSurfaceDrag = 0.0f;
 	flexParams->drag = 0.0f;
 	flexParams->lift = 1.0f;
-	flexParams->numIterations = 2;
+	flexParams->numIterations = 3;
 	flexParams->fluidRestDistance = 0.f;
 	flexParams->solidRestDistance = 0.f;
 
@@ -91,14 +91,13 @@ void flexAPI::initParams() {
 }
 
 void flexAPI::initParamsRadius(float r) {
+	radius = r;
 	flexParams->radius = r;
 	flexParams->fluidRestDistance = r * 0.75f;
 	flexParams->solidRestDistance = r * 0.5f;
 	flexParams->particleCollisionMargin = r * 0.5f;
 	flexParams->shapeCollisionMargin = r * 0.25f;
 	flexParams->collisionDistance = r * 0.5f; // Needed for tri-particle intersection
-
-	radius = r;
 }
 
 
@@ -107,7 +106,7 @@ void flexAPI::updateParam(std::string str, float n) {
 		*flexMap.at(str) = n;
 	}
 	catch (std::exception e) {
-		printLua("PARAM '" + str + "' IS INVALID!");
+		printLua("[GWATER]: Param '" + str + "' is invalid");
 	}
 }
 

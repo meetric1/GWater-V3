@@ -2,6 +2,41 @@
 #include "declarations.h"
 #include <string>
 
+//Quat library provided by potatoOS, turns a eular angle into a quaterion
+#define _PI 3.14159265358979323846
+float rad(float degree) {
+    return (degree * (_PI / 180));
+}
+
+float4 getQuatMul(float4 lhs, float4 rhs) {
+    return float4(
+        lhs.x * rhs.x - lhs.y * rhs.y - lhs.z * rhs.z - lhs.w * rhs.w,
+        lhs.x * rhs.y + lhs.y * rhs.x + lhs.z * rhs.w - lhs.w * rhs.z,
+        lhs.x * rhs.z + lhs.z * rhs.x + lhs.w * rhs.y - lhs.y * rhs.w,
+        lhs.x * rhs.w + lhs.w * rhs.x + lhs.y * rhs.z - lhs.z * rhs.y
+    );
+}
+
+float4 quatFromAngleComponents(float p, float y, float r) {
+    p = rad(p) * 0.5f;
+    y = rad(y) * 0.5f;
+    r = rad(r) * 0.5f;
+
+    float4 q_x = float4((float)cos(y), 0, 0, (float)sin(y));
+    float4 q_y = float4((float)cos(p), 0, (float)sin(p), 0);
+    float4 q_z = float4((float)cos(r), (float)sin(r), 0, 0);
+
+    return getQuatMul(q_x, getQuatMul(q_y, q_z));
+}
+
+float4 unfuckQuat(float4 q) {
+    return float4(q.y, q.z, q.w, q.x);
+}
+
+float4 quatFromAngle(QAngle ang) {
+    return unfuckQuat(quatFromAngleComponents(ang.x, ang.y, ang.z));
+}
+
 float3 crossProduct(float3 A, float3 B) {
     return float3(
         A.y * B.z - A.z * B.y,
@@ -16,36 +51,38 @@ float3 normalize(float3 v) {
 }
 
 //adds CONVEX mesh for flex
-void flexAPI::addMeshConvex(GarrysMod::Lua::ILuaBase* LUA, const float* minFloat, const float* maxFloat, size_t tableLen) {
-    //prop decleration
+void flexAPI::addMeshConvex(GarrysMod::Lua::ILuaBase* LUA) {
+    float4 meshAng = quatFromAngle(LUA->GetAngle(-1));
+    float4 meshPos = float4(LUA->GetVector(-2), 1.f / 50000.f);
+    float3 meshMax = LUA->GetVector(-3);
+    float3 meshMin = LUA->GetVector(-4);
+    float minFloat[3] = { meshMin.x, meshMin.y, meshMin.z };
+    float maxFloat[3] = { meshMax.x, meshMax.y, meshMax.z };
+    size_t tableLen = LUA->ObjLen(-5);
+    LUA->Pop(4);    //pops all stuff above, the table is now at index -1
+
+    //add the prop
     Prop p = Prop();
-    p.pos = float4();
-    p.ang = float4(0.0f, 0.0f, 0.0f, 1.0f);
-    p.lastPos = float4();
-    p.lastAng = float4(0.0f, 0.0f, 0.0f, 1.0f);
+    p.pos = meshPos;
+    p.ang = meshAng;
+    p.lastPos = meshPos;
+    p.lastAng = meshAng;
     p.verts = NvFlexAllocBuffer(flexLibrary, tableLen, sizeof(float4), eNvFlexBufferHost);
 
     float4* hostVerts = (float4*)(NvFlexMap(p.verts, eNvFlexMapWait));
 
     //loop through vertices
     for (int i = 0; i < tableLen; i += 3) {
-        //the 3 points
         float3 verts[3] = {};
         for (int j = 0; j < 3; j++) {
-            //get table data
             LUA->PushNumber((double)(i + j) + 1.0);
             LUA->GetTable(-2);
 
             Vector thisPos = LUA->GetVector();
             verts[j] = float3(thisPos);
-
-            LUA->Pop(); //pop pos
+            LUA->Pop(); //pop the pos
         }
-
-        //add data to flex planes
         float3 cross = normalize(crossProduct(verts[1] - verts[0], verts[2] - verts[0]));
-
-        //calculate distance for flex plane
         float d = cross.x * verts[0].x + cross.y * verts[0].y + cross.z * verts[0].z;
         hostVerts[i / 3] = float4(-cross.x, -cross.y, -cross.z, d);
     }
@@ -61,17 +98,15 @@ void flexAPI::addMeshConvex(GarrysMod::Lua::ILuaBase* LUA, const float* minFloat
 
     // Add data to BUFFERS
     mapBuffers();
-
     simBuffers->flags[propCount] = NvFlexMakeShapeFlags(eNvFlexShapeConvexMesh, true);	//always dynamic (props)
     simBuffers->geometry[propCount].convexMesh.mesh = p.meshID;
     simBuffers->geometry[propCount].convexMesh.scale[0] = 1.0f;
     simBuffers->geometry[propCount].convexMesh.scale[1] = 1.0f;
     simBuffers->geometry[propCount].convexMesh.scale[2] = 1.0f;
-    simBuffers->positions[propCount] = float4();
-    simBuffers->rotations[propCount] = float4(0.0f, 0.0f, 0.0f, 1.0f);	//NEVER SET ROTATION TO 0,0,0,0, FLEX *HATES* IT!
-    simBuffers->prevPositions[propCount] = float4();
-    simBuffers->prevRotations[propCount] = float4(0.0f, 0.0f, 0.0f, 1.0f);
-
+    simBuffers->positions[propCount] = meshPos;
+    simBuffers->rotations[propCount] = meshAng;	//NEVER SET ROTATION TO 0,0,0,0, FLEX *HATES* IT!
+    simBuffers->prevPositions[propCount] = meshPos;
+    simBuffers->prevRotations[propCount] = meshAng;
     unmapBuffers();
 
     props.push_back(p);
@@ -80,31 +115,34 @@ void flexAPI::addMeshConvex(GarrysMod::Lua::ILuaBase* LUA, const float* minFloat
 }
 
 //generate a TRIANGLE mesh for flex
-void flexAPI::addMeshConcave(GarrysMod::Lua::ILuaBase* LUA, const float* minFloat, const float* maxFloat, size_t tableLen) {
-    //prop decleration
+void flexAPI::addMeshConcave(GarrysMod::Lua::ILuaBase* LUA) {
+    float4 meshAng = quatFromAngle(LUA->GetAngle(-1));
+    float4 meshPos = float4(LUA->GetVector(-2), 1.f / 50000.f);
+    float3 meshMax = LUA->GetVector(-3);
+    float3 meshMin = LUA->GetVector(-4);
+    float minFloat[3] = { meshMin.x, meshMin.y, meshMin.z };
+    float maxFloat[3] = { meshMax.x, meshMax.y, meshMax.z };
+    size_t tableLen = LUA->ObjLen(-5);
+    LUA->Pop(4);    //pops all stuff above, the table is now at index -1
+
+    //add the prop
     Prop p = Prop();
-    p.pos = float4();
-    p.ang = float4(0.0f, 0.0f, 0.0f, 1.0f);
-    p.lastPos = float4();
-    p.lastAng = float4(0.0f, 0.0f, 0.0f, 1.0f);
+    p.pos = meshPos;
+    p.ang = meshAng;
+    p.lastPos = meshPos;
+    p.lastAng = meshAng;
     p.verts = NvFlexAllocBuffer(flexLibrary, tableLen, sizeof(float4), eNvFlexBufferHost);
     p.indices = NvFlexAllocBuffer(flexLibrary, tableLen, sizeof(int), eNvFlexBufferHost);
 
     float4* hostVerts = (float4*)(NvFlexMap(p.verts, eNvFlexMapWait));
     int* hostIndices = (int*)(NvFlexMap(p.indices, eNvFlexMapWait));
 
-    //loop through verticies
     for (int i = 0; i < tableLen; i++) {
-
-        //lua is 1 indexed, C++ is 0 indexed
-        LUA->PushNumber((double)i + 1.0);
-
-        //gets data from table at the number ontop of the stack
+        LUA->PushNumber((double)i + 1.0);   //lua is 1 indexed, C++ is 0 indexed
         LUA->GetTable(-2);
 
         Vector thisPos = LUA->GetVector();
         float4 vert = float4(thisPos, 0.f);
-
         hostVerts[i] = vert;
         hostIndices[i] = i;
 
@@ -114,12 +152,9 @@ void flexAPI::addMeshConcave(GarrysMod::Lua::ILuaBase* LUA, const float* minFloa
             hostIndices[i] = hostIndices[i - 1];
             hostIndices[i - 1] = host;
         }
-
         LUA->Pop(); //pop pos
     }
-
     LUA->Pop(); //pop table
-
     NvFlexUnmap(p.verts);
     NvFlexUnmap(p.indices);
 
@@ -127,29 +162,29 @@ void flexAPI::addMeshConcave(GarrysMod::Lua::ILuaBase* LUA, const float* minFloa
     p.meshID = NvFlexCreateTriangleMesh(flexLibrary);
     NvFlexUpdateTriangleMesh(flexLibrary, p.meshID, p.verts, p.indices, tableLen, tableLen / 3, minFloat, maxFloat);
 
-    //map & unmap buffers
     mapBuffers();
-
     simBuffers->flags[propCount] = NvFlexMakeShapeFlags(eNvFlexShapeTriangleMesh, propCount != 0);	//index 0 is ALWAYS the world
     simBuffers->geometry[propCount].triMesh.mesh = p.meshID;
     simBuffers->geometry[propCount].triMesh.scale[0] = 1.0f;
     simBuffers->geometry[propCount].triMesh.scale[1] = 1.0f;
     simBuffers->geometry[propCount].triMesh.scale[2] = 1.0f;
-    simBuffers->positions[propCount] = float4();
-    simBuffers->rotations[propCount] = float4(0.0f, 0.0f, 0.0f, 1.0f);	//NEVER SET ROTATION TO 0,0,0,0, FLEX *HATES* IT!
-    simBuffers->prevPositions[propCount] = float4();
-    simBuffers->prevRotations[propCount] = float4(0.0f, 0.0f, 0.0f, 1.0f);
-
+    simBuffers->positions[propCount] = meshPos;
+    simBuffers->rotations[propCount] = meshAng;	//NEVER SET ROTATION TO 0,0,0,0, FLEX *HATES* IT!
+    simBuffers->prevPositions[propCount] = meshPos;
+    simBuffers->prevRotations[propCount] = meshAng;
     unmapBuffers();
 
     props.push_back(p);
     propCount++;
-
 }
 
-//generate a TRIANGLE mesh for flex
+//updates position of mesh `id` (50000 is max gmod weight)
+void flexAPI::updateMeshPos(Vector pos, QAngle ang, int id) {
+    props[id].lastPos = float4(pos, 1.f / 50000.f);
+    props[id].lastAng = quatFromAngle(ang);
+}
+
 /*void flexAPI::addCloth(GarrysMod::Lua::ILuaBase* LUA, size_t tableLen) {
     buffer.assign()
     NvFlexExtCreateTearingClothFromMesh((float*)&g_buffers->positions[0], int(g_buffers->positions.size()), int(g_buffers->positions.size()) + g_numExtraParticles, (int*)&mesh->m_indices[0], mesh->GetNumFaces(), 0.8f, 0.8f, 0.0f);
-
 }*/

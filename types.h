@@ -8,7 +8,7 @@
 #include <string>
 #include <map>
 
-//HO LYSHI THANK U ANDREW THESE ARE LIKE ACTUALL YUSEFUL
+//Float4 structure, holds 4 floats, X, Y, Z, and W
 struct float4 {
     float x, y, z, w;
     float4(float x1, float y1, float z1, float w1) : x(x1), y(y1), z(z1), w(w1) {};
@@ -23,6 +23,7 @@ struct float4 {
     }
 };
 
+//Float3 structure, holds 3 floats, X, Y, and Z
 struct float3 {
     float x, y, z;
     float3(float x1, float y1, float z1) : x(x1), y(y1), z(z1) {};
@@ -119,14 +120,12 @@ public:
     float radius;
 
     void addParticle(Vector pos, Vector vel);
-
-    void addMeshConcave(GarrysMod::Lua::ILuaBase* LUA, const float* minFloat, const float* maxFloat, size_t tableLen);
-    void addMeshConvex(GarrysMod::Lua::ILuaBase* LUA, const float* minFloat, const float* maxFloat, size_t tableLen);
-    void updateMeshPos(float4 pos, float4 ang, int id);
+    void addMeshConcave(GarrysMod::Lua::ILuaBase* LUA);
+    void addMeshConvex(GarrysMod::Lua::ILuaBase* LUA);
+    void updateMeshPos(Vector pos, QAngle ang, int id);
     void freeProp(int ID);
 
     void updateParam(std::string, float n);
-
     void initParams();
     void initParamsRadius(float r);
     void flexSolveThread();
@@ -137,7 +136,7 @@ public:
     void applyForce(float3 pos, float3 vel, float radius, bool linear);
     void applyForceOutwards(float3 pos, float strength, float radius, bool linear);
 
-    void addCloth(GarrysMod::Lua::ILuaBase* LUA, size_t tableLen);
+    //void addCloth(GarrysMod::Lua::ILuaBase* LUA, size_t tableLen);
 
     void addForceField(Vector pos, float radius, float strength, bool linear, int type);
     void deleteForceField(int ID);
