@@ -60,12 +60,11 @@ LUA_FUNCTION(RenderParticles) {
 	float3 pos = float3(LUA->GetVector(-2));
 
 	LUA->Pop(2);
-
 	LUA->PushSpecial(SPECIAL_GLOB);
 	LUA->GetField(-1, "render");
 
 	float particleRadius = flexLib->radius;
-	//loop thru all particles, any that we cannot see are not sent to gmod
+	//loop thru all particles, any that we cannot see are not rendered
 	for (int i = 0; i < numParticles; i++) {
 		float3 thisPos = float3(particleBufferHost[i]);
 
