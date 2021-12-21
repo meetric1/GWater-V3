@@ -85,7 +85,7 @@ struct ForceFieldData {
 };
 
 
-class flexAPI {
+class FLEX_API {
     NvFlexLibrary* flexLibrary;
     NvFlexSolver* flexSolver;
     SimBuffers* simBuffers;
@@ -114,6 +114,7 @@ class flexAPI {
     std::vector<Prop> props;
     std::vector<Particle> particleQueue;
     std::map<std::string, float*> flexMap;
+    std::map<std::string, float> gwaterMap;
 
 public:
 
@@ -126,6 +127,7 @@ public:
     void freeProp(int ID);
 
     void updateParam(std::string, float n);
+    void updateExtraParam(std::string str, float n);
     void initParams();
     void initParamsRadius(float r);
     void flexSolveThread();
@@ -145,8 +147,8 @@ public:
 
     void mapBuffers();
     void unmapBuffers();
-    flexAPI();
-    ~flexAPI();
+    FLEX_API();
+    ~FLEX_API();
 
 };
 

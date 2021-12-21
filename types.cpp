@@ -6,18 +6,18 @@
 
 //tysm this was very useful for debugging
 void gjelly_error(NvFlexErrorSeverity type, const char* msg, const char* file, int line) {
-    printLua("FLEX ERROR:");
-    printLua(msg);
+    LUA_Print("FLEX ERROR:");
+    LUA_Print(msg);
 }
 
 //add a particle to flex
-void flexAPI::addParticle(Vector pos, Vector vel) {
+void FLEX_API::addParticle(Vector pos, Vector vel) {
     Particle particle = Particle{float4(pos , 0.5), float3(vel)};
     particleQueue.push_back(particle);
 }
 
 //maps ALL flex buffers
-void flexAPI::mapBuffers() {
+void FLEX_API::mapBuffers() {
     simBuffers->particles = (float4*)NvFlexMap(particleBuffer, eNvFlexMapWait);
     simBuffers->velocities = (float3*)NvFlexMap(velocityBuffer, eNvFlexMapWait);
     simBuffers->phases = (int*)NvFlexMap(phaseBuffer, eNvFlexMapWait);
@@ -34,7 +34,7 @@ void flexAPI::mapBuffers() {
 }
 
 //unmapps ALL flex buffers
-void flexAPI::unmapBuffers() {
+void FLEX_API::unmapBuffers() {
     NvFlexUnmap(particleBuffer);
     NvFlexUnmap(velocityBuffer);
     NvFlexUnmap(phaseBuffer);
@@ -52,7 +52,7 @@ void flexAPI::unmapBuffers() {
 
 
 //removes prop from flex
-void flexAPI::freeProp(int id) {
+void FLEX_API::freeProp(int id) {
     Prop* prop = &props[id];
 
     NvFlexFreeBuffer(prop->verts);
@@ -66,7 +66,7 @@ void flexAPI::freeProp(int id) {
 
 
     mapBuffers();
-    for (int i = id; i < propCount; i++) {
+    for (int i = id; i < PropCount; i++) {
         int nextIndex = i + 1;
 
         simBuffers->geometry[i] = simBuffers->geometry[nextIndex];
@@ -82,13 +82,13 @@ void flexAPI::freeProp(int id) {
 
 
     props.pop_back();
-    propCount--;
+    PropCount--;
 }
 
-void flexAPI::removeInRadius(float3 pos, float radius) {
+void FLEX_API::removeInRadius(float3 pos, float radius) {
     bufferMutex->lock();
 
-    if (!simValid) {
+    if (!SimValid) {
         bufferMutex->unlock();
         return;
     }
@@ -101,18 +101,16 @@ void flexAPI::removeInRadius(float3 pos, float radius) {
     radius *= 2;
 
     int n = 0;
-    int num = numParticles;
+    int num = ParticleCount;
     for (int i = 0; i < num; i++) {
-        if (distance2(simBuffers->particles[i], pos) >= radius) {
+        if (DistanceSquared(simBuffers->particles[i], pos) >= radius) {
             simBuffers->particles[n] = simBuffers->particles[i];
             simBuffers->velocities[n] = simBuffers->velocities[i];
             simBuffers->phases[n] = simBuffers->phases[i];
-            //simBuffers->activeIndices[n] = simBuffers->activeIndices[i];  //activeindices is different, dont switch them
-
             n++;
         }
         else {
-            numParticles--;
+            ParticleCount--;
         }
     }
 
@@ -121,9 +119,9 @@ void flexAPI::removeInRadius(float3 pos, float radius) {
     bufferMutex->unlock();
 }
 
-void flexAPI::applyForce(float3 pos, float3 vel, float radius, bool linear) {
+void FLEX_API::applyForce(float3 pos, float3 vel, float radius, bool linear) {
     bufferMutex->lock();
-    if (!simValid) {
+    if (!SimValid) {
         bufferMutex->unlock();
         return;
     }
@@ -132,9 +130,9 @@ void flexAPI::applyForce(float3 pos, float3 vel, float radius, bool linear) {
 
     radius *= 2;
 
-    int num = numParticles;
+    int num = ParticleCount;
     for (int i = 0; i < num; i++) {
-        float dist = distance2(simBuffers->particles[i], pos);
+        float dist = DistanceSquared(simBuffers->particles[i], pos);
         if (dist <= radius) {
             float theta = 1 - dist / radius;
             simBuffers->velocities[i] = simBuffers->velocities[i] + vel * (linear ? theta : 1);
@@ -145,9 +143,9 @@ void flexAPI::applyForce(float3 pos, float3 vel, float radius, bool linear) {
     bufferMutex->unlock();
 }
 
-void flexAPI::applyForceOutwards(float3 pos, float strength, float radius, bool linear) {
+void FLEX_API::applyForceOutwards(float3 pos, float strength, float radius, bool linear) {
     bufferMutex->lock();
-    if (!simValid) {
+    if (!SimValid) {
         bufferMutex->unlock();
         return;
     }
@@ -156,9 +154,9 @@ void flexAPI::applyForceOutwards(float3 pos, float strength, float radius, bool 
 
     radius *= 2;
 
-    int num = numParticles;
+    int num = ParticleCount;
     for (int i = 0; i < num; i++) {
-        float dist = distance2(simBuffers->particles[i], pos);
+        float dist = DistanceSquared(simBuffers->particles[i], pos);
         if (dist <= radius) {
             float theta = 1 - dist / radius;
             float3 vel = normalize(pos - float3(simBuffers->particles[i])) * strength;
@@ -170,7 +168,7 @@ void flexAPI::applyForceOutwards(float3 pos, float strength, float radius, bool 
     bufferMutex->unlock();
 }
 
-void flexAPI::addForceField(Vector pos, float radius, float strength, bool linear, int type) {
+void FLEX_API::addForceField(Vector pos, float radius, float strength, bool linear, int type) {
     //force field count
     int ffcount = forceFieldData->forceFieldCount;
     if (ffcount > 64) return;
@@ -190,23 +188,23 @@ void flexAPI::addForceField(Vector pos, float radius, float strength, bool linea
 }
 
 
-void flexAPI::setForceFieldPos(int ID, Vector pos) {
+void FLEX_API::setForceFieldPos(int ID, Vector pos) {
     forceFieldData->forceFieldBuffer[ID].mPosition[0] = pos.x;
     forceFieldData->forceFieldBuffer[ID].mPosition[1] = pos.y;
     forceFieldData->forceFieldBuffer[ID].mPosition[2] = pos.z;
 }
 
-void flexAPI::editForceField(int ID, float radius, float strength, bool linear, int type) {
+void FLEX_API::editForceField(int ID, float radius, float strength, bool linear, int type) {
     forceFieldData->forceFieldBuffer[ID].mRadius = radius;
     forceFieldData->forceFieldBuffer[ID].mStrength = strength;
     forceFieldData->forceFieldBuffer[ID].mLinearFalloff = linear;
     forceFieldData->forceFieldBuffer[ID].mMode = (NvFlexExtForceMode)type;
 }
 
-void flexAPI::deleteForceField(int ID) {
+void FLEX_API::deleteForceField(int ID) {
     //lock for this one because we are iterating through the entire array
     bufferMutex->lock();
-    if (!simValid) {
+    if (!SimValid) {
         bufferMutex->unlock();
         return;
     }
@@ -220,13 +218,13 @@ void flexAPI::deleteForceField(int ID) {
     bufferMutex->unlock();
 }
 
-void flexAPI::removeAllParticles() {
+void FLEX_API::removeAllParticles() {
     particleQueue.clear();
-    numParticles = 0;
+    ParticleCount = 0;
 }
 
 //flex startup
-flexAPI::flexAPI() {
+FLEX_API::FLEX_API() {
     flexLibrary = NvFlexInit(NV_FLEX_VERSION, gjelly_error);
 
     NvFlexSetSolverDescDefaults(&flexSolverDesc);
@@ -275,15 +273,15 @@ flexAPI::flexAPI() {
     forceFieldData->forceFieldBuffer = new NvFlexExtForceField[64];
 
     // Launch our flex solver thread
-    std::thread(&flexAPI::flexSolveThread, this).detach();
+    std::thread(&FLEX_API::flexSolveThread, this).detach();
 }
 
 //flex shutdown
-flexAPI::~flexAPI() {
+FLEX_API::~FLEX_API() {
     bufferMutex->lock();
-    simValid = false;
-    numParticles = 0;
-    propCount = 0;
+    SimValid = false;
+    ParticleCount = 0;
+    PropCount = 0;
 
     if (flexLibrary != nullptr) {
 

@@ -8,17 +8,21 @@
 #include <mutex>
 #include "types.h"
 
-extern std::shared_ptr<flexAPI> flexLib;
+#define MAX_DISTANCE_SQRD pow(5000, 2)
+#define GWATER_VERSION 1.0
+#define ADD_FUNC(funcName, tblName) GlobalLUA->PushCFunction(funcName); GlobalLUA->SetField(-2, tblName);
+
+extern std::shared_ptr<FLEX_API> FLEX_Simulation;
 extern GarrysMod::Lua::ILuaBase* GlobalLUA;
 
 extern std::mutex* bufferMutex;
 extern float4* particleBufferHost;
 
-extern int numParticles;
-extern int propCount;
-extern bool simValid;
+extern int ParticleCount;
+extern int PropCount;
+extern bool SimValid;
 
-extern void printLua(std::string text);
-extern void printLua(char*);
-extern float distance2(float3 a, float3 b);
+extern void LUA_Print(std::string text);
+extern void LUA_Print(char*);
+extern float DistanceSquared(float3 a, float3 b);
 extern float3 normalize(float3 v);

@@ -165,14 +165,16 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Simulation.cpp" />
+    <ClCompile Include="simulation.cpp" />
     <ClCompile Include="mesh.cpp" />
     <ClCompile Include="params.cpp" />
     <ClCompile Include="types.cpp" />
+    <ClCompile Include="util.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="declarations.h" />
     <ClInclude Include="types.h" />
+    <ClInclude Include="util.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

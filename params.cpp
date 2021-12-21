@@ -6,7 +6,7 @@
 #include <float.h>
 
 
-void flexAPI::initParams() {
+void FLEX_API::initParams() {
 	flexParams->gravity[0] = 0.0f;
 	flexParams->gravity[1] = 0.0f;
 	flexParams->gravity[2] = -9.8f;
@@ -65,32 +65,34 @@ void flexAPI::initParams() {
 
 	flexParams->numPlanes = 1;
 
-	flexMap["VISCOSITY"] = &(flexParams->viscosity);
-	flexMap["DRAG"] = &(flexParams->drag);
-	flexMap["DISSIPATION"] = &(flexParams->dissipation);
-	flexMap["DAMPING"] = &(flexParams->damping);
-	flexMap["SLEEP_THRESHOLD"] = &(flexParams->sleepThreshold);
-	flexMap["MAX_SPEED"] = &(flexParams->maxSpeed);
-	flexMap["MAX_ACCELERATION"] = &(flexParams->maxAcceleration);
-	flexMap["ADHESION"] = &(flexParams->adhesion);
-	flexMap["COHESION"] = &(flexParams->cohesion);
-	flexMap["SURFACE_TENSION"] = &(flexParams->surfaceTension);
-	flexMap["VORTICITY_CONFINEMENT"] = &(flexParams->vorticityConfinement);
-	flexMap["GRAVITY_X"] = &(flexParams->gravity[0]);
-	flexMap["GRAVITY_Y"] = &(flexParams->gravity[1]);
-	flexMap["GRAVITY_Z"] = &(flexParams->gravity[2]);
-	flexMap["WIND_X"] = &(flexParams->wind[0]);
-	flexMap["WIND_Y"] = &(flexParams->wind[1]);
-	flexMap["WIND_Z"] = &(flexParams->wind[2]);
-	flexMap["DYNAMIC_FRICTION"] = &(flexParams->dynamicFriction);	//5/r
-	flexMap["STATIC_FRICTION"] = &(flexParams->staticFriction);
-	flexMap["PARTICLE_FRICTION"] = &(flexParams->particleFriction); // scale friction between particles by default
+	flexMap["viscosity"] = &(flexParams->viscosity);
+	flexMap["drag"] = &(flexParams->drag);
+	flexMap["dissipation"] = &(flexParams->dissipation);
+	flexMap["damping"] = &(flexParams->damping);
+	flexMap["sleepThreshold"] = &(flexParams->sleepThreshold);
+	flexMap["maxSpeed"] = &(flexParams->maxSpeed);
+	flexMap["maxAcceleration"] = &(flexParams->maxAcceleration);
+	flexMap["adhesion"] = &(flexParams->adhesion);
+	flexMap["cohesion"] = &(flexParams->cohesion);
+	flexMap["surfaceTension"] = &(flexParams->surfaceTension);
+	flexMap["vorticityConfinement"] = &(flexParams->vorticityConfinement);
+	flexMap["gravityX"] = &(flexParams->gravity[0]);
+	flexMap["gravityY"] = &(flexParams->gravity[1]);
+	flexMap["gravityZ"] = &(flexParams->gravity[2]);
+	flexMap["windX"] = &(flexParams->wind[0]);
+	flexMap["windY"] = &(flexParams->wind[1]);
+	flexMap["windZ"] = &(flexParams->wind[2]);
+	flexMap["dynamicFriction"] = &(flexParams->dynamicFriction);	//5/r
+	flexMap["staticFriction"] = &(flexParams->staticFriction);
+	flexMap["particleFriction"] = &(flexParams->particleFriction); // scale friction between particles by default
+
+	gwaterMap["simulationFramerate"] = 60;
 
 	//its an int
 	//flexMap["NUM_ITERATIONS"] = &(flexParams->numIterations);
 }
 
-void flexAPI::initParamsRadius(float r) {
+void FLEX_API::initParamsRadius(float r) {
 	radius = r;
 	flexParams->radius = r;
 	flexParams->fluidRestDistance = r * 0.75f;
@@ -101,12 +103,21 @@ void flexAPI::initParamsRadius(float r) {
 }
 
 
-void flexAPI::updateParam(std::string str, float n) {
+void FLEX_API::updateParam(std::string str, float n) {
 	try {
 		*flexMap.at(str) = n;
 	}
 	catch (std::exception e) {
-		printLua("[GWATER]: Param '" + str + "' is invalid");
+		GlobalLUA->ThrowError(("Invalid parameter \"" + str + "\"!").c_str());
+	}
+}
+
+void FLEX_API::updateExtraParam(std::string str, float n) {
+	try {
+		gwaterMap.at(str) = n;
+	}
+	catch (std::exception e) {
+		GlobalLUA->ThrowError(("Invalid extra parameter \"" + str + "\"!").c_str());
 	}
 }
 

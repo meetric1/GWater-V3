@@ -51,7 +51,7 @@ float3 normalize(float3 v) {
 }
 
 //adds CONVEX mesh for flex
-void flexAPI::addMeshConvex(GarrysMod::Lua::ILuaBase* LUA) {
+void FLEX_API::addMeshConvex(GarrysMod::Lua::ILuaBase* LUA) {
     float4 meshAng = quatFromAngle(LUA->GetAngle(-1));
     float4 meshPos = float4(LUA->GetVector(-2), 1.f / 50000.f);
     float3 meshMax = LUA->GetVector(-3);
@@ -98,24 +98,24 @@ void flexAPI::addMeshConvex(GarrysMod::Lua::ILuaBase* LUA) {
 
     // Add data to BUFFERS
     mapBuffers();
-    simBuffers->flags[propCount] = NvFlexMakeShapeFlags(eNvFlexShapeConvexMesh, true);	//always dynamic (props)
-    simBuffers->geometry[propCount].convexMesh.mesh = p.meshID;
-    simBuffers->geometry[propCount].convexMesh.scale[0] = 1.0f;
-    simBuffers->geometry[propCount].convexMesh.scale[1] = 1.0f;
-    simBuffers->geometry[propCount].convexMesh.scale[2] = 1.0f;
-    simBuffers->positions[propCount] = meshPos;
-    simBuffers->rotations[propCount] = meshAng;	//NEVER SET ROTATION TO 0,0,0,0, FLEX *HATES* IT!
-    simBuffers->prevPositions[propCount] = meshPos;
-    simBuffers->prevRotations[propCount] = meshAng;
+    simBuffers->flags[PropCount] = NvFlexMakeShapeFlags(eNvFlexShapeConvexMesh, true);	//always dynamic (props)
+    simBuffers->geometry[PropCount].convexMesh.mesh = p.meshID;
+    simBuffers->geometry[PropCount].convexMesh.scale[0] = 1.0f;
+    simBuffers->geometry[PropCount].convexMesh.scale[1] = 1.0f;
+    simBuffers->geometry[PropCount].convexMesh.scale[2] = 1.0f;
+    simBuffers->positions[PropCount] = meshPos;
+    simBuffers->rotations[PropCount] = meshAng;	//NEVER SET ROTATION TO 0,0,0,0, FLEX *HATES* IT!
+    simBuffers->prevPositions[PropCount] = meshPos;
+    simBuffers->prevRotations[PropCount] = meshAng;
     unmapBuffers();
 
     props.push_back(p);
-    propCount++;
+    PropCount++;
 
 }
 
 //generate a TRIANGLE mesh for flex
-void flexAPI::addMeshConcave(GarrysMod::Lua::ILuaBase* LUA) {
+void FLEX_API::addMeshConcave(GarrysMod::Lua::ILuaBase* LUA) {
     float4 meshAng = quatFromAngle(LUA->GetAngle(-1));
     float4 meshPos = float4(LUA->GetVector(-2), 1.f / 50000.f);
     float3 meshMax = LUA->GetVector(-3);
@@ -163,23 +163,23 @@ void flexAPI::addMeshConcave(GarrysMod::Lua::ILuaBase* LUA) {
     NvFlexUpdateTriangleMesh(flexLibrary, p.meshID, p.verts, p.indices, tableLen, tableLen / 3, minFloat, maxFloat);
 
     mapBuffers();
-    simBuffers->flags[propCount] = NvFlexMakeShapeFlags(eNvFlexShapeTriangleMesh, propCount != 0);	//index 0 is ALWAYS the world
-    simBuffers->geometry[propCount].triMesh.mesh = p.meshID;
-    simBuffers->geometry[propCount].triMesh.scale[0] = 1.0f;
-    simBuffers->geometry[propCount].triMesh.scale[1] = 1.0f;
-    simBuffers->geometry[propCount].triMesh.scale[2] = 1.0f;
-    simBuffers->positions[propCount] = meshPos;
-    simBuffers->rotations[propCount] = meshAng;	//NEVER SET ROTATION TO 0,0,0,0, FLEX *HATES* IT!
-    simBuffers->prevPositions[propCount] = meshPos;
-    simBuffers->prevRotations[propCount] = meshAng;
+    simBuffers->flags[PropCount] = NvFlexMakeShapeFlags(eNvFlexShapeTriangleMesh, PropCount != 0);	//index 0 is ALWAYS the world
+    simBuffers->geometry[PropCount].triMesh.mesh = p.meshID;
+    simBuffers->geometry[PropCount].triMesh.scale[0] = 1.0f;
+    simBuffers->geometry[PropCount].triMesh.scale[1] = 1.0f;
+    simBuffers->geometry[PropCount].triMesh.scale[2] = 1.0f;
+    simBuffers->positions[PropCount] = meshPos;
+    simBuffers->rotations[PropCount] = meshAng;	//NEVER SET ROTATION TO 0,0,0,0, FLEX *HATES* IT!
+    simBuffers->prevPositions[PropCount] = meshPos;
+    simBuffers->prevRotations[PropCount] = meshAng;
     unmapBuffers();
 
     props.push_back(p);
-    propCount++;
+    PropCount++;
 }
 
 //updates position of mesh `id` (50000 is max gmod weight)
-void flexAPI::updateMeshPos(Vector pos, QAngle ang, int id) {
+void FLEX_API::updateMeshPos(Vector pos, QAngle ang, int id) {
     props[id].lastPos = float4(pos, 1.f / 50000.f);
     props[id].lastAng = quatFromAngle(ang);
 }
