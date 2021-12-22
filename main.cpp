@@ -493,7 +493,7 @@ LUA_FUNCTION(RemoveMesh) {
 	return 0;
 }
 
-LUA_FUNCTION(UpdateParams) {
+LUA_FUNCTION(SetConfig) {
 	LUA->CheckType(1, Type::String); //ID of param
 	LUA->CheckType(2, Type::Number);
 
@@ -503,7 +503,7 @@ LUA_FUNCTION(UpdateParams) {
 	return 0;
 }
 
-LUA_FUNCTION(UpdateExtraParams) {
+LUA_FUNCTION(SetExtraConfig) {
 	LUA->CheckType(1, Type::String); //ID of param
 	LUA->CheckType(2, Type::Number);
 
@@ -511,6 +511,18 @@ LUA_FUNCTION(UpdateExtraParams) {
 
 	LUA->Pop(2);
 	return 0;
+}
+
+LUA_FUNCTION(GetConfig) {
+	LUA->CheckType(1, Type::String); //ID of param
+	LUA->PushNumber(*FLEX_Simulation->flexMap[LUA->GetString()]);
+	return 1;
+}
+
+LUA_FUNCTION(GetExtraConfig) {
+	LUA->CheckType(1, Type::String); //ID of param
+	LUA->PushNumber(FLEX_Simulation->gwaterMap[LUA->GetString()]);
+	return 1;
 }
 
 LUA_FUNCTION(GetModuleVersion) {
@@ -553,8 +565,11 @@ GMOD_MODULE_OPEN() {
 
 	//param funcs
 	ADD_FUNC(SetRadius, "SetRadius");
-	ADD_FUNC(UpdateParams, "UpdateParams");
-	ADD_FUNC(UpdateExtraParams, "UpdateExtraParams");
+	ADD_FUNC(SetConfig, "SetConfig");
+	ADD_FUNC(SetExtraConfig, "SetExtraConfig");
+
+	ADD_FUNC(GetConfig, "GetConfig");
+	ADD_FUNC(GetExtraConfig, "GetExtraConfig");
 
 	//extras
 	ADD_FUNC(DeleteSimulation, "DeleteSimulation");
