@@ -113,10 +113,10 @@ class FLEX_API {
 
     std::vector<Prop> props;
     std::vector<Particle> particleQueue;
-    std::map<std::string, float*> flexMap;
-    std::map<std::string, float> gwaterMap;
 
 public:
+    std::map<std::string, float*> flexMap;
+    std::map<std::string, float> gwaterMap;
 
     float radius;
 
