@@ -18,6 +18,7 @@ extern GarrysMod::Lua::ILuaBase* GlobalLUA;
 extern std::mutex* bufferMutex;
 extern float4* particleBufferHost;
 
+extern float simTimescale;
 extern int ParticleCount;
 extern int PropCount;
 extern bool SimValid;

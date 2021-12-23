@@ -235,6 +235,7 @@ FLEX_API::FLEX_API() {
     initParams();
     initParamsRadius(10);
     radius = 10;
+    simTimescale = 8;
 
     flexSolver = NvFlexCreateSolver(flexLibrary, &flexSolverDesc);
     NvFlexSetParams(flexSolver, flexParams);

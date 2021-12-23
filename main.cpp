@@ -10,6 +10,7 @@ GarrysMod::Lua::ILuaBase* GlobalLUA;
 std::mutex* bufferMutex;
 float4* particleBufferHost;
 
+float simTimescale = 8;
 int ParticleCount = 0;
 int PropCount = 0;
 bool SimValid = true;
@@ -518,6 +519,13 @@ LUA_FUNCTION(GetModuleVersion) {
 	return 1;
 }
 
+LUA_FUNCTION(SetTimescale) {
+	LUA->CheckType(-1, Type::Number);	
+	simTimescale = LUA->GetNumber();
+	if (simTimescale < 0) simTimescale = 0;
+	return 1;
+}
+
 
 //called when module is opened
 GMOD_MODULE_OPEN() {
@@ -560,6 +568,7 @@ GMOD_MODULE_OPEN() {
 	ADD_FUNC(DeleteSimulation, "DeleteSimulation");
 	ADD_FUNC(Blackhole, "Blackhole");
 	ADD_FUNC(GetModuleVersion, "GetModuleVersion");
+	ADD_FUNC(SetTimescale, "SetTimescale");
 
 	LUA->SetField(-2, "gwater");
 	LUA->Pop(); //remove _G

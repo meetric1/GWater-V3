@@ -21,7 +21,7 @@ void FLEX_API::flexSolveThread() {
 	//runs always while sim is active
 	while (SimValid) {
 		//no work to do yet
-		if (!ParticleCount && !particleQueue.size()) {
+		if (!ParticleCount && !particleQueue.size() || !simTimescale) {
 			sleep(simFPS_ms);
 			continue;
 		}
@@ -87,7 +87,7 @@ void FLEX_API::flexSolveThread() {
 		milliseconds diff = duration_cast<std::chrono::milliseconds>(timeEnd - timeStart);
 
 		//tick the solver 
-		NvFlexUpdateSolver(flexSolver, simFPS * 8 + (float)(diff.count() / 1000.f), 3, false);
+		NvFlexUpdateSolver(flexSolver, simFPS * simTimescale + (float)(diff.count() / 1000.f), 3, false);
 
 		//read back (async)
 		NvFlexGetParticles(flexSolver, particleBuffer, NULL);
