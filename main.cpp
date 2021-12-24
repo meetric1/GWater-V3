@@ -532,9 +532,14 @@ LUA_FUNCTION(GetModuleVersion) {
 }
 
 LUA_FUNCTION(SetTimescale) {
-	LUA->CheckType(-1, Type::Number);	
+	LUA->CheckType(-1, Type::Number);
 	simTimescale = LUA->GetNumber();
 	if (simTimescale < 0) simTimescale = 0;
+	return 0;
+}
+
+LUA_FUNCTION(GetTimescale) {
+	LUA->PushNumber(simTimescale);
 	return 1;
 }
 
