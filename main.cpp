@@ -97,6 +97,11 @@ LUA_FUNCTION(ParticlesNear) {
 	return 1;
 }
 
+LUA_FUNCTION(CleanLostParticles) {
+	FLEX_Simulation->cleanLostParticles();
+	return 0;
+}
+
 //xyz data triangle test
 LUA_FUNCTION(GetData) {
 	LUA->CreateTable();
@@ -141,12 +146,17 @@ LUA_FUNCTION(SetRadius) {
 
 	if (radius > 8192 || !(radius > 0)) {
 		LUA->ThrowError(("Tried to set GWater particle radius to " + std::to_string(radius) + "! (8192 max)").c_str());
-		return 0; 
+		return 0;
 	}
 
 	FLEX_Simulation->initParamsRadius(radius);
 	LUA->Pop();
 	return 0;
+}
+
+LUA_FUNCTION(GetRadius) {
+	LUA->PushNumber(FLEX_Simulation->flexParams->radius);
+	return 1;
 }
 
 //stops simulation
@@ -555,6 +565,7 @@ GMOD_MODULE_OPEN() {
 	ADD_FUNC(SpawnCube, "SpawnCube");
 	ADD_FUNC(SpawnSphere, "SpawnSphere");
 	ADD_FUNC(SpawnCubeExact, "SpawnCubeExact");
+	ADD_FUNC(CleanLostParticles, "CleanLostParticles");
 
 	//meshes
 	ADD_FUNC(AddConvexMesh, "AddConvexMesh");
@@ -581,6 +592,7 @@ GMOD_MODULE_OPEN() {
 	ADD_FUNC(SetConfig, "SetConfig");
 	ADD_FUNC(SetExtraConfig, "SetExtraConfig");
 
+	ADD_FUNC(GetRadius, "GetRadius");
 	ADD_FUNC(GetConfig, "GetConfig");
 	ADD_FUNC(GetExtraConfig, "GetExtraConfig");
 
@@ -589,6 +601,7 @@ GMOD_MODULE_OPEN() {
 	ADD_FUNC(Blackhole, "Blackhole");
 	ADD_FUNC(GetModuleVersion, "GetModuleVersion");
 	ADD_FUNC(SetTimescale, "SetTimescale");
+	ADD_FUNC(GetTimescale, "GetTimescale");
 
 	LUA->SetField(-2, "gwater");
 	LUA->Pop(); //remove _G

@@ -106,9 +106,7 @@ class FLEX_API {
     NvFlexBuffer* lengthsBuffer;
     NvFlexBuffer* coefficientsBuffer;
 
-    NvFlexParams* flexParams;
     NvFlexSolverDesc flexSolverDesc;
-
     ForceFieldData* forceFieldData;
 
     std::vector<Prop> props;
@@ -117,6 +115,7 @@ class FLEX_API {
 public:
     std::map<std::string, float*> flexMap;
     std::map<std::string, float> gwaterMap;
+    NvFlexParams* flexParams;
 
     float radius;
 
@@ -135,6 +134,8 @@ public:
     void removeAllProps();
     void removeInRadius(float3 pos, float radius);
 
+    void cleanLostParticles();
+
     void applyForce(float3 pos, float3 vel, float radius, bool linear);
     void applyForceOutwards(float3 pos, float strength, float radius, bool linear);
 
@@ -149,6 +150,5 @@ public:
     void unmapBuffers();
     FLEX_API();
     ~FLEX_API();
-
 };
 

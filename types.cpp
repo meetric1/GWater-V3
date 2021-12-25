@@ -119,6 +119,35 @@ void FLEX_API::removeInRadius(float3 pos, float radius) {
     bufferMutex->unlock();
 }
 
+void FLEX_API::cleanLostParticles() {
+    bufferMutex->lock();
+
+    if (!SimValid) {
+        bufferMutex->unlock();
+        return;
+    }
+
+    mapBuffers();
+
+    int n = 0;
+    int num = ParticleCount;
+    for (int i = 0; i < num; i++) {
+        if (simBuffers->particles[i].z >= -32760) {
+            simBuffers->particles[n] = simBuffers->particles[i];
+            simBuffers->velocities[n] = simBuffers->velocities[i];
+            simBuffers->phases[n] = simBuffers->phases[i];
+            n++;
+        }
+        else {
+            ParticleCount--;
+        }
+    }
+
+    unmapBuffers();
+
+    bufferMutex->unlock();
+}
+
 void FLEX_API::applyForce(float3 pos, float3 vel, float radius, bool linear) {
     bufferMutex->lock();
     if (!SimValid) {
@@ -221,6 +250,17 @@ void FLEX_API::deleteForceField(int ID) {
 void FLEX_API::removeAllParticles() {
     particleQueue.clear();
     ParticleCount = 0;
+}
+
+
+void FLEX_API::removeAllProps()
+{
+    // andrew: ???
+    // this wasn't defined when i noticed that intellisense pointed it out
+    // i guess i'll try to make it for you but this isn't used anywhere so idk
+    for (int i = 0; i < props.size(); i++) {
+        freeProp(i);
+    }
 }
 
 //flex startup
