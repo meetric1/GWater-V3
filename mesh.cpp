@@ -74,6 +74,7 @@ void FLEX_API::addMeshConvex(GarrysMod::Lua::ILuaBase* LUA) {
     //loop through vertices
     for (int i = 0; i < tableLen; i += 3) {
         float3 verts[3] = {};
+
         for (int j = 0; j < 3; j++) {
             LUA->PushNumber((double)(i + j) + 1.0);
             LUA->GetTable(-2);
@@ -104,7 +105,7 @@ void FLEX_API::addMeshConvex(GarrysMod::Lua::ILuaBase* LUA) {
     simBuffers->geometry[PropCount].convexMesh.scale[1] = 1.0f;
     simBuffers->geometry[PropCount].convexMesh.scale[2] = 1.0f;
     simBuffers->positions[PropCount] = meshPos;
-    simBuffers->rotations[PropCount] = meshAng;	//NEVER SET ROTATION TO 0,0,0,0, FLEX *HATES* IT!
+    simBuffers->rotations[PropCount] = meshAng;	//dont set rotation to 0 or flex kabooms
     simBuffers->prevPositions[PropCount] = meshPos;
     simBuffers->prevRotations[PropCount] = meshAng;
     unmapBuffers();
@@ -169,7 +170,7 @@ void FLEX_API::addMeshConcave(GarrysMod::Lua::ILuaBase* LUA) {
     simBuffers->geometry[PropCount].triMesh.scale[1] = 1.0f;
     simBuffers->geometry[PropCount].triMesh.scale[2] = 1.0f;
     simBuffers->positions[PropCount] = meshPos;
-    simBuffers->rotations[PropCount] = meshAng;	//NEVER SET ROTATION TO 0,0,0,0, FLEX *HATES* IT!
+    simBuffers->rotations[PropCount] = meshAng;	//dont set rotation to 0 or flex kabooms
     simBuffers->prevPositions[PropCount] = meshPos;
     simBuffers->prevRotations[PropCount] = meshAng;
     unmapBuffers();

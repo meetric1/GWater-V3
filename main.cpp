@@ -10,7 +10,7 @@ GarrysMod::Lua::ILuaBase* GlobalLUA;
 std::mutex* bufferMutex;
 float4* particleBufferHost;
 
-float simTimescale = 8;
+float simTimescale = 1;
 int ParticleCount = 0;
 int PropCount = 0;
 bool SimValid = true;
@@ -159,6 +159,33 @@ LUA_FUNCTION(GetRadius) {
 	return 1;
 }
 
+
+//A: sets max particles, this can't actually change the 65535 hard limit without editing the cpp
+//so this will just change the limit that is checked by the code, and additionally erase any extra particles when maxparticles < particlecount 
+LUA_FUNCTION(SetMaxParticles) {
+	LUA->CheckType(1, Type::Number);
+	int count = (float)LUA->GetNumber();
+
+	if (count > 65536 || !(count > 0)) {
+		LUA->ThrowError(("Tried to set GWater max particles to " + std::to_string(count) + "! (65536 max)").c_str());
+		return 0;
+	}
+
+	FLEX_Simulation->flexSolverDesc.maxParticles = count;
+	FLEX_Simulation->cullParticles();
+
+	LUA->Pop();
+	return 0;
+}
+
+//A: getter
+LUA_FUNCTION(GetMaxParticles) {
+	LUA->PushNumber(FLEX_Simulation->flexSolverDesc.maxParticles);
+	return 1;
+}
+
+
+
 //stops simulation
 LUA_FUNCTION(DeleteSimulation) {
 	if (!SimValid) return 0;
@@ -174,6 +201,8 @@ LUA_FUNCTION(DeleteSimulation) {
 }
 
 LUA_FUNCTION(SpawnParticle) {
+	if (ParticleCount >= FLEX_Simulation->flexSolverDesc.maxParticles) return 0;
+
 	//check to see if they are both vectors
 	LUA->CheckType(1, Type::Vector); // pos
 	LUA->CheckType(2, Type::Vector); // vel
@@ -206,6 +235,8 @@ LUA_FUNCTION(SpawnCube) {
 	for (int z = -gmodSize.z; z <= gmodSize.z; z++) {
 		for (int y = -gmodSize.y; y <= gmodSize.y; y++) {
 			for (int x = -gmodSize.x; x <= gmodSize.x; x++) {
+				if (ParticleCount >= FLEX_Simulation->flexSolverDesc.maxParticles) return 0;
+
 				Vector offset;
 				offset.x = gmodPos.x + x * size;
 				offset.y = gmodPos.y + y * size;
@@ -238,6 +269,7 @@ LUA_FUNCTION(SpawnSphere) {
 	for (int z = -radius; z <= radius; z++) {
 		for (int y = -radius; y <= radius; y++) {
 			for (int x = -radius; x <= radius; x++) {
+				if (ParticleCount >= FLEX_Simulation->flexSolverDesc.maxParticles) return 0;
 				if (x * x + y * y + z * z >= radius * radius) continue;
 
 				Vector offset;
@@ -279,6 +311,7 @@ LUA_FUNCTION(SpawnCubeExact) {
 	for (float z = -gmodSize.z; z < gmodSize.z; z++) {
 		for (float y = -gmodSize.y ; y < gmodSize.y; y++) {
 			for (float x = -gmodSize.x; x < gmodSize.x; x++) {
+				if (ParticleCount >= FLEX_Simulation->flexSolverDesc.maxParticles) return 0;
 
 				Vector newPos;
 				newPos.x = (x * size) + gmodPos.x;

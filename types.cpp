@@ -119,6 +119,29 @@ void FLEX_API::removeInRadius(float3 pos, float radius) {
     bufferMutex->unlock();
 }
 
+// Culls particles outside of maxParticles, this is only to be used for maxParticles changes
+void FLEX_API::cullParticles()
+{
+    bufferMutex->lock();
+
+    if (!SimValid) {
+        bufferMutex->unlock();
+        return;
+    }
+
+    mapBuffers();
+    
+    for (int i = flexSolverDesc.maxParticles; i < 65536; i++) {
+        simBuffers->particles[i] = 0;
+        simBuffers->velocities[i] = 0;
+        simBuffers->phases[i] = 0;
+        ParticleCount--;
+    }
+
+    unmapBuffers();
+    bufferMutex->unlock();
+}
+
 void FLEX_API::cleanLostParticles() {
     bufferMutex->lock();
 
@@ -144,7 +167,6 @@ void FLEX_API::cleanLostParticles() {
     }
 
     unmapBuffers();
-
     bufferMutex->unlock();
 }
 

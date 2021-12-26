@@ -13,6 +13,10 @@ void sleep(int sec) {
 
 using namespace std::chrono;
 
+steady_clock::time_point curtime() {
+	return std::chrono::high_resolution_clock::now();
+}
+
 void FLEX_API::flexSolveThread() {
 	//declarations
 	float simFPS = 1.f / gwaterMap["simulationFramerate"];
@@ -29,7 +33,7 @@ void FLEX_API::flexSolveThread() {
 		bufferMutex->lock();
 
 		//grab current time vs time it takes to iterate through everything
-		steady_clock::time_point timeStart = high_resolution_clock::now();
+		steady_clock::time_point timeStart = curtime();
 		
 		//because we are in a buffer lock, the simulation might have already been shut down (even with the while loop check!)
 		if (!SimValid) {
@@ -66,39 +70,45 @@ void FLEX_API::flexSolveThread() {
 			prop->ang = prop->lastAng;
 		}
 
-		//copy to particlehost to be used in rendering
+		//copy to particle host to be used in rendering
 		memcpy(particleBufferHost, simBuffers->particles, sizeof(float4) * ParticleCount);
 
 		//unmap buffers
 		unmapBuffers();
 
+		//a: optimisation from my v4
+		NvFlexCopyDesc copyDesc;
+		copyDesc.dstOffset = 0;
+		copyDesc.srcOffset = 0;
+		copyDesc.elementCount = ParticleCount;
+
 		//write to device (async)
-		NvFlexSetParticles(flexSolver, particleBuffer, NULL);
-		NvFlexSetVelocities(flexSolver, velocityBuffer, NULL);
-		NvFlexSetPhases(flexSolver, phaseBuffer, NULL);
-		NvFlexSetActive(flexSolver, activeBuffer, NULL);
+		NvFlexSetParticles(flexSolver, particleBuffer, &copyDesc);
+		NvFlexSetVelocities(flexSolver, velocityBuffer, &copyDesc);
+		NvFlexSetPhases(flexSolver, phaseBuffer, &copyDesc);
+		NvFlexSetActive(flexSolver, activeBuffer, &copyDesc);
 		NvFlexSetActiveCount(flexSolver, ParticleCount);
-		NvFlexSetShapes(flexSolver, geometryBuffer, geoPosBuffer, geoQuatBuffer, geoPrevPosBuffer, geoPrevQuatBuffer, geoFlagsBuffer, PropCount);
+		NvFlexSetShapes(flexSolver, geometryBuffer,	geoPosBuffer, geoQuatBuffer, geoPrevPosBuffer, geoPrevQuatBuffer, geoFlagsBuffer, PropCount);
 		NvFlexSetParams(flexSolver, flexParams);
 		NvFlexExtSetForceFields(forceFieldData->forceFieldCallback, forceFieldData->forceFieldBuffer, forceFieldData->forceFieldCount);
 
 		//grab end time
-		steady_clock::time_point timeEnd = std::chrono::high_resolution_clock::now();
-		milliseconds diff = duration_cast<std::chrono::milliseconds>(timeEnd - timeStart);
+		steady_clock::time_point timeEnd = curtime();
+		milliseconds diff = duration_cast<milliseconds>(timeEnd - timeStart);
 
 		//tick the solver 
-		NvFlexUpdateSolver(flexSolver, simFPS * 8 * simTimescale + (float)(diff.count() / 1000.f), 3, false);
+		NvFlexUpdateSolver(flexSolver, simFPS * 10 * simTimescale, 3, false);
 
 		//read back (async)
-		NvFlexGetParticles(flexSolver, particleBuffer, NULL);
-		NvFlexGetVelocities(flexSolver, velocityBuffer, NULL);
-		NvFlexGetPhases(flexSolver, phaseBuffer, NULL);
-		NvFlexGetActive(flexSolver, activeBuffer, NULL);
+		NvFlexGetParticles(flexSolver, particleBuffer, &copyDesc);
+		NvFlexGetVelocities(flexSolver, velocityBuffer, &copyDesc);
+		NvFlexGetPhases(flexSolver, phaseBuffer, &copyDesc);
+		NvFlexGetActive(flexSolver, activeBuffer, &copyDesc);
 
 		//dont forget to unlock our buffer
 		bufferMutex->unlock();
 
 		//sleep until next frame
-		sleep(simFPS_ms);
+		sleep(simFPS_ms - (int)(diff.count()));
 	}
 }
