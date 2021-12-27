@@ -135,7 +135,6 @@ void FLEX_API::cullParticles()
         simBuffers->particles[i] = 0;
         simBuffers->velocities[i] = 0;
         simBuffers->phases[i] = 0;
-        ParticleCount--;
     }
 
     unmapBuffers();
@@ -170,6 +169,33 @@ void FLEX_API::cleanLostParticles() {
     bufferMutex->unlock();
 }
 
+int FLEX_API::recalculateSimulatedParticles(float3 eyepos)
+{
+    bufferMutex->lock();
+    if (!SimValid) {
+        bufferMutex->unlock();
+        return 0;
+    }
+
+    int count = 0;
+    mapBuffers();
+        for (int i = 0; i < ParticleCount; i++) {
+            float dist = DistanceSquared(simBuffers->particles[i], eyepos);
+            if (dist <= SimulationDistance) {
+                simBuffers->activeIndices[i] = i;
+                count++;
+            }
+            else
+            {
+                simBuffers->activeIndices[i] = 0;
+            }
+        }
+    unmapBuffers();
+
+    bufferMutex->unlock();
+    return count;
+}
+
 void FLEX_API::applyForce(float3 pos, float3 vel, float radius, bool linear) {
     bufferMutex->lock();
     if (!SimValid) {
@@ -189,8 +215,8 @@ void FLEX_API::applyForce(float3 pos, float3 vel, float radius, bool linear) {
             simBuffers->velocities[i] = simBuffers->velocities[i] + vel * (linear ? theta : 1);
         }
     }
-    unmapBuffers();
 
+    unmapBuffers();
     bufferMutex->unlock();
 }
 
@@ -297,7 +323,7 @@ FLEX_API::FLEX_API() {
     initParams();
     initParamsRadius(10);
     radius = 10;
-    simTimescale = 8;
+    simTimescale = 1;
 
     flexSolver = NvFlexCreateSolver(flexLibrary, &flexSolverDesc);
     NvFlexSetParams(flexSolver, flexParams);

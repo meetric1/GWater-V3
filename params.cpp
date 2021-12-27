@@ -32,7 +32,7 @@ void FLEX_API::initParams() {
 	flexParams->anisotropyMax = 0.0f;
 	flexParams->smoothing = 0.0f;
 
-	flexParams->dissipation = 0.01f;
+	flexParams->dissipation = 0.f;
 	flexParams->damping = 0.0f;
 	flexParams->particleCollisionMargin = 0.f;
 	flexParams->shapeCollisionMargin = 0.f;
@@ -45,10 +45,10 @@ void FLEX_API::initParams() {
 	flexParams->maxAcceleration = 128.0f;	// approximately 10x gravity
 	flexParams->relaxationMode = eNvFlexRelaxationLocal;
 	flexParams->relaxationFactor = 0.5f;
-	flexParams->solidPressure = 1.0f;
+	flexParams->solidPressure = 0.5f;
 	flexParams->adhesion = 0.0f;
-	flexParams->cohesion = 0.036f;
-	flexParams->surfaceTension = 0.000015f;
+	flexParams->cohesion = 0.03f;
+	flexParams->surfaceTension = 0.000001f;
 	flexParams->vorticityConfinement = 10.0f;
 	flexParams->buoyancy = 1.0f;
 	flexParams->diffuseThreshold = 0.0f;

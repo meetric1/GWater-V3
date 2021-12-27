@@ -8,7 +8,6 @@
 #include <mutex>
 #include "types.h"
 
-#define MAX_DISTANCE_SQRD pow(5000, 2)
 #define GWATER_VERSION 1.0
 #define ADD_FUNC(funcName, tblName) GlobalLUA->PushCFunction(funcName); GlobalLUA->SetField(-2, tblName);
 
@@ -22,6 +21,8 @@ extern float simTimescale;
 extern int ParticleCount;
 extern int PropCount;
 extern bool SimValid;
+extern int RenderDistance;
+extern int SimulationDistance;
 
 extern void LUA_Print(std::string text);
 extern void LUA_Print(char*);

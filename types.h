@@ -136,6 +136,7 @@ public:
 
     void cullParticles();
     void cleanLostParticles();
+    int recalculateSimulatedParticles(float3 eyepos); // returns how many particles are simulated
 
     void applyForce(float3 pos, float3 vel, float radius, bool linear);
     void applyForceOutwards(float3 pos, float strength, float radius, bool linear);

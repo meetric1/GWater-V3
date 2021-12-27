@@ -97,7 +97,7 @@ void FLEX_API::flexSolveThread() {
 		milliseconds diff = duration_cast<milliseconds>(timeEnd - timeStart);
 
 		//tick the solver 
-		NvFlexUpdateSolver(flexSolver, simFPS * 10 * simTimescale, 3, false);
+		NvFlexUpdateSolver(flexSolver, simFPS * 8 * simTimescale + (float)(diff.count()) / 1000.f, 3, false);
 
 		//read back (async)
 		NvFlexGetParticles(flexSolver, particleBuffer, &copyDesc);
@@ -109,6 +109,6 @@ void FLEX_API::flexSolveThread() {
 		bufferMutex->unlock();
 
 		//sleep until next frame
-		sleep(simFPS_ms - (int)(diff.count()));
+		sleep(simFPS_ms);
 	}
 }

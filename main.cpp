@@ -14,6 +14,8 @@ float simTimescale = 1;
 int ParticleCount = 0;
 int PropCount = 0;
 bool SimValid = true;
+int RenderDistance = pow(5000, 2);
+int SimulationDistance = pow(15000, 2);
 
 //overloaded printlua func
 void LUA_Print(std::string text)
@@ -56,7 +58,7 @@ LUA_FUNCTION(RenderParticles)
 	for (int i = 0; i < ParticleCount; i++) {
 		float3 thisPos = float3(particleBufferHost[i]);
 
-		if (Dot(thisPos - pos, dir) < 0 || DistanceSquared(thisPos, pos) > MAX_DISTANCE_SQRD) continue;
+		if (Dot(thisPos - pos, dir) < 0 || DistanceSquared(thisPos, pos) > RenderDistance) continue;
 
 		Vector gmodPos;
 		gmodPos.x = thisPos.x;
@@ -172,6 +174,7 @@ LUA_FUNCTION(SetMaxParticles) {
 	}
 
 	FLEX_Simulation->flexSolverDesc.maxParticles = count;
+	ParticleCount = count;
 	FLEX_Simulation->cullParticles();
 
 	LUA->Pop();
@@ -201,8 +204,6 @@ LUA_FUNCTION(DeleteSimulation) {
 }
 
 LUA_FUNCTION(SpawnParticle) {
-	if (ParticleCount >= FLEX_Simulation->flexSolverDesc.maxParticles) return 0;
-
 	//check to see if they are both vectors
 	LUA->CheckType(1, Type::Vector); // pos
 	LUA->CheckType(2, Type::Vector); // vel
@@ -235,8 +236,6 @@ LUA_FUNCTION(SpawnCube) {
 	for (int z = -gmodSize.z; z <= gmodSize.z; z++) {
 		for (int y = -gmodSize.y; y <= gmodSize.y; y++) {
 			for (int x = -gmodSize.x; x <= gmodSize.x; x++) {
-				if (ParticleCount >= FLEX_Simulation->flexSolverDesc.maxParticles) return 0;
-
 				Vector offset;
 				offset.x = gmodPos.x + x * size;
 				offset.y = gmodPos.y + y * size;
@@ -269,7 +268,6 @@ LUA_FUNCTION(SpawnSphere) {
 	for (int z = -radius; z <= radius; z++) {
 		for (int y = -radius; y <= radius; y++) {
 			for (int x = -radius; x <= radius; x++) {
-				if (ParticleCount >= FLEX_Simulation->flexSolverDesc.maxParticles) return 0;
 				if (x * x + y * y + z * z >= radius * radius) continue;
 
 				Vector offset;
@@ -279,9 +277,7 @@ LUA_FUNCTION(SpawnSphere) {
 
 				FLEX_Simulation->addParticle(offset, gmodVel);
 			}
-
 		}
-
 	}
 
 	//remove pos, size, size, and vel
@@ -311,8 +307,6 @@ LUA_FUNCTION(SpawnCubeExact) {
 	for (float z = -gmodSize.z; z < gmodSize.z; z++) {
 		for (float y = -gmodSize.y ; y < gmodSize.y; y++) {
 			for (float x = -gmodSize.x; x < gmodSize.x; x++) {
-				if (ParticleCount >= FLEX_Simulation->flexSolverDesc.maxParticles) return 0;
-
 				Vector newPos;
 				newPos.x = (x * size) + gmodPos.x;
 				newPos.y = (y * size) + gmodPos.y;
@@ -532,8 +526,8 @@ LUA_FUNCTION(RemoveMesh) {
 
 	FLEX_Simulation->freeProp(propidx);
 	bufferMutex->unlock();
-	LUA->Pop();	//pop id
 
+	LUA->Pop();	//pop id
 	return 0;
 }
 
@@ -578,6 +572,7 @@ LUA_FUNCTION(SetTimescale) {
 	LUA->CheckType(-1, Type::Number);
 	simTimescale = LUA->GetNumber();
 	if (simTimescale < 0) simTimescale = 0;
+	LUA->Pop();
 	return 0;
 }
 
@@ -585,6 +580,42 @@ LUA_FUNCTION(GetTimescale) {
 	LUA->PushNumber(simTimescale);
 	return 1;
 }
+
+
+LUA_FUNCTION(SetRenderDistance) {
+	LUA->CheckType(-1, Type::Number);
+	RenderDistance = pow(LUA->GetNumber(), 2);
+	if (RenderDistance < 0) RenderDistance = 0;
+	LUA->Pop();
+	return 0;
+}
+
+LUA_FUNCTION(GetRenderDistance) {
+	LUA->PushNumber(sqrt(RenderDistance));
+	return 1;
+}
+
+LUA_FUNCTION(SetSimulationDistance) {
+	LUA->CheckType(-1, Type::Number);
+	SimulationDistance = pow(LUA->GetNumber(), 2);
+	if (SimulationDistance < 0) SimulationDistance = 0;
+	LUA->Pop();
+	return 0;
+}
+
+LUA_FUNCTION(GetSimulationDistance) {
+	LUA->PushNumber(sqrt(SimulationDistance));
+	return 1;
+}
+
+//A: this is an internal function, dont use it future developers
+LUA_FUNCTION(RecalculateSimulatedParticles) {
+	LUA->CheckType(1, Type::Vector);
+	float3 pos = float3(LUA->GetVector());
+	LUA->PushNumber(FLEX_Simulation->recalculateSimulatedParticles(pos));
+	return 1;
+}
+
 
 
 //called when module is opened
@@ -599,6 +630,8 @@ GMOD_MODULE_OPEN() {
 	ADD_FUNC(SpawnSphere, "SpawnSphere");
 	ADD_FUNC(SpawnCubeExact, "SpawnCubeExact");
 	ADD_FUNC(CleanLostParticles, "CleanLostParticles");
+	ADD_FUNC(SetMaxParticles, "SetMaxParticles");
+	ADD_FUNC(GetMaxParticles, "GetMaxParticles");
 
 	//meshes
 	ADD_FUNC(AddConvexMesh, "AddConvexMesh");
@@ -611,6 +644,11 @@ GMOD_MODULE_OPEN() {
 	ADD_FUNC(RemoveAll, "RemoveAll");
 	ADD_FUNC(ParticlesNear, "ParticlesNear");
 	ADD_FUNC(GetData, "GetData");
+	ADD_FUNC(SetRenderDistance, "SetRenderDistance");
+	ADD_FUNC(GetRenderDistance, "GetRenderDistance");
+	ADD_FUNC(SetSimulationDistance, "SetSimulationDistance");
+	ADD_FUNC(GetSimulationDistance, "GetSimulationDistance");
+	ADD_FUNC(RecalculateSimulatedParticles, "RecalculateSimulatedParticles");
 
 	//forces
 	ADD_FUNC(SpawnForceField, "SpawnForceField");
