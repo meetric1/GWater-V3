@@ -169,6 +169,41 @@ void FLEX_API::cleanLostParticles() {
     bufferMutex->unlock();
 }
 
+int FLEX_API::cleanLoneParticles() {
+    bufferMutex->lock();
+
+    if (!SimValid) {
+        bufferMutex->unlock();
+        return 0;
+    }
+
+    mapBuffers();
+
+    int n = 0;
+    int purged = 0;
+    for (int i = 0; i < ParticleCount; i++) {
+        int neighbors = 0;
+
+        for (int j = 0; j < ParticleCount; j++)
+            if (DistanceSquared(simBuffers->particles[i], simBuffers->particles[j]) < 10000) neighbors++;
+        
+        if (neighbors > 2) {
+            simBuffers->particles[n] = simBuffers->particles[i];
+            simBuffers->velocities[n] = simBuffers->velocities[i];
+            simBuffers->phases[n] = simBuffers->phases[i];
+            n++;
+        }
+        else {
+            ParticleCount--; //begone loner :trollhd:
+            purged++;
+        }
+    }
+
+    unmapBuffers();
+    bufferMutex->unlock();
+    return purged;
+}
+
 int FLEX_API::recalculateSimulatedParticles(float3 eyepos)
 {
     bufferMutex->lock();

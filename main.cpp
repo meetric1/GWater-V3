@@ -1,6 +1,7 @@
 #include "declarations.h"
 #include "util.h"
 #include <string>
+#include "main.h"
 
 using namespace GarrysMod::Lua;
 
@@ -104,6 +105,11 @@ LUA_FUNCTION(CleanLostParticles) {
 	return 0;
 }
 
+LUA_FUNCTION(CleanLoneParticles) {
+	LUA->PushNumber(FLEX_Simulation->cleanLoneParticles());
+	return 1;
+}
+
 //xyz data triangle test
 LUA_FUNCTION(GetData) {
 	LUA->CreateTable();
@@ -147,7 +153,7 @@ LUA_FUNCTION(SetRadius) {
 	float radius = (float)LUA->GetNumber();
 
 	if (radius > 8192 || !(radius > 0)) {
-		LUA->ThrowError(("Tried to set GWater particle radius to " + std::to_string(radius) + "! (8192 max)").c_str());
+		LUA->ThrowError(("Tried to set GWater particle radius to " + std::to_string(radius) + "! (1 min, 8192 max)").c_str());
 		return 0;
 	}
 
@@ -168,13 +174,13 @@ LUA_FUNCTION(SetMaxParticles) {
 	LUA->CheckType(1, Type::Number);
 	int count = (float)LUA->GetNumber();
 
-	if (count > 65536 || !(count > 0)) {
-		LUA->ThrowError(("Tried to set GWater max particles to " + std::to_string(count) + "! (65536 max)").c_str());
+	if (count > 65536 || !(count > -1)) {
+		LUA->ThrowError(("Tried to set GWater max particles to " + std::to_string(count) + "! (0 min, 65536 max)").c_str());
 		return 0;
 	}
 
 	FLEX_Simulation->flexSolverDesc.maxParticles = count;
-	ParticleCount = count;
+	if (ParticleCount > count) ParticleCount = count;
 	FLEX_Simulation->cullParticles();
 
 	LUA->Pop();
@@ -608,7 +614,7 @@ LUA_FUNCTION(GetSimulationDistance) {
 	return 1;
 }
 
-//A: this is an internal function, dont use it future developers
+//A: this is an internal function, dont use it future devs
 LUA_FUNCTION(RecalculateSimulatedParticles) {
 	LUA->CheckType(1, Type::Vector);
 	float3 pos = float3(LUA->GetVector());
@@ -616,6 +622,10 @@ LUA_FUNCTION(RecalculateSimulatedParticles) {
 	return 1;
 }
 
+LUA_FUNCTION(GetParticleCount) {
+	LUA->PushNumber(ParticleCount);
+	return 1;
+}
 
 
 //called when module is opened
@@ -624,14 +634,22 @@ GMOD_MODULE_OPEN() {
 	LUA->PushSpecial(SPECIAL_GLOB);
 
 	LUA->CreateTable();
-	//particle creation
+
+	//particle-related
 	ADD_FUNC(SpawnParticle, "SpawnParticle");
 	ADD_FUNC(SpawnCube, "SpawnCube");
 	ADD_FUNC(SpawnSphere, "SpawnSphere");
 	ADD_FUNC(SpawnCubeExact, "SpawnCubeExact");
 	ADD_FUNC(CleanLostParticles, "CleanLostParticles");
+	ADD_FUNC(CleanLoneParticles, "CleanLoneParticles");
 	ADD_FUNC(SetMaxParticles, "SetMaxParticles");
 	ADD_FUNC(GetMaxParticles, "GetMaxParticles");
+	ADD_FUNC(GetParticleCount, "GetParticleCount");
+
+	//A: i don't recommend using these, these are just available for the sake of being here
+	//ADD_FUNC(SetParticlePos, "SetParticlePos");
+	//ADD_FUNC(GetParticlePos, "GetParticlePos");
+	//ADD_FUNC(RemoveParticle, "RemoveParticle");
 
 	//meshes
 	ADD_FUNC(AddConvexMesh, "AddConvexMesh");
