@@ -1,7 +1,7 @@
 #include "declarations.h"
 #include "util.h"
 #include <string>
-#include "main.h"
+#include "GarrysMod/Lua/LuaBase.h"
 
 using namespace GarrysMod::Lua;
 
@@ -627,12 +627,16 @@ LUA_FUNCTION(GetParticleCount) {
 	return 1;
 }
 
+void PopulateFunctions(ILuaBase* LUA);
 
-//called when module is opened
-GMOD_MODULE_OPEN() {
-	GlobalLUA = LUA;
+LUA_FUNCTION(PopulateGWaterFunctions) {
+	PopulateFunctions(LUA);
+	return 0;
+}
+
+void PopulateFunctions(ILuaBase* LUA) {
+
 	LUA->PushSpecial(SPECIAL_GLOB);
-
 	LUA->CreateTable();
 
 	//particle-related
@@ -691,9 +695,18 @@ GMOD_MODULE_OPEN() {
 	ADD_FUNC(GetModuleVersion, "GetModuleVersion");
 	ADD_FUNC(SetTimescale, "SetTimescale");
 	ADD_FUNC(GetTimescale, "GetTimescale");
+	ADD_FUNC(PopulateGWaterFunctions, "PopulateGWaterFunctions");
 
 	LUA->SetField(-2, "gwater");
 	LUA->Pop(); //remove _G
+}
+
+
+//called when module is opened
+GMOD_MODULE_OPEN() {
+	GlobalLUA = LUA;
+
+	PopulateFunctions(LUA);
 
 	// Initialize FleX api class
 	FLEX_Simulation = std::make_shared<FLEX_API>();
@@ -704,6 +717,7 @@ GMOD_MODULE_OPEN() {
 // Called when the module is unloaded
 GMOD_MODULE_CLOSE() {
 	FLEX_Simulation.reset();
+
 	LUA->PushSpecial(SPECIAL_GLOB);
 	LUA->PushNil();
 	LUA->SetField(-2, "gwater");
