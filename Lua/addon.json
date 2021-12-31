@@ -1,0 +1,11 @@
+{
+	"title"		:	"[BETA] GWater | Dynamic Water for GMod",
+	"type"		:	"effects",
+	"tags"		:	[ "water", "fun" ],
+	"ignore"	:
+	[
+		"*.psd",
+		"*.vcproj",
+		"*.svn*"
+	]
+}

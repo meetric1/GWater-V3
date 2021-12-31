@@ -16,7 +16,7 @@ void FLEX_API::initParams() {
 	flexParams->wind[2] = 0.0f;
 
 	flexParams->radius = 0.f;
-	flexParams->viscosity = 0.1f;
+	flexParams->viscosity = 0.0f;
 	flexParams->dynamicFriction = 0.5f;	//5/r
 	flexParams->staticFriction = 0.5f;
 	flexParams->particleFriction = 0.01f; // scale friction between particles by default
@@ -32,24 +32,24 @@ void FLEX_API::initParams() {
 	flexParams->anisotropyMax = 0.0f;
 	flexParams->smoothing = 0.0f;
 
-	flexParams->dissipation = 0.f;
+	flexParams->dissipation = 0.01f;
 	flexParams->damping = 0.0f;
 	flexParams->particleCollisionMargin = 0.f;
 	flexParams->shapeCollisionMargin = 0.f;
 	flexParams->collisionDistance = 0.f; // Needed for tri-particle intersection
-	flexParams->sleepThreshold = 0.1f;
+	flexParams->sleepThreshold = 1.f;
 	flexParams->shockPropagation = 0.0f;
 	flexParams->restitution = 1.0f;
 
 	flexParams->maxSpeed = FLT_MAX;
 	flexParams->maxAcceleration = 128.0f;	// approximately 10x gravity
 	flexParams->relaxationMode = eNvFlexRelaxationLocal;
-	flexParams->relaxationFactor = 0.5f;
-	flexParams->solidPressure = 0.5f;
+	flexParams->relaxationFactor = 0.0f;
+	flexParams->solidPressure = 0.0f;
 	flexParams->adhesion = 0.0f;
-	flexParams->cohesion = 0.03f;
-	flexParams->surfaceTension = 0.000001f;
-	flexParams->vorticityConfinement = 10.0f;
+	flexParams->cohesion = 0.01f;
+	flexParams->surfaceTension = 0.0f;
+	flexParams->vorticityConfinement = 0.0f;
 	flexParams->buoyancy = 1.0f;
 	flexParams->diffuseThreshold = 0.0f;
 	flexParams->diffuseBuoyancy = 0.0f;
@@ -96,11 +96,11 @@ void FLEX_API::initParams() {
 void FLEX_API::initParamsRadius(float r) {
 	radius = r;
 	flexParams->radius = r;
-	flexParams->fluidRestDistance = r * 0.55f;
-	flexParams->solidRestDistance = r * 0.75f;
-	flexParams->particleCollisionMargin = r * 0.75f;
-	flexParams->shapeCollisionMargin = r * 0.4f;
-	flexParams->collisionDistance = r * 0.75f; // Needed for tri-particle intersection
+	flexParams->fluidRestDistance = r * 0.75f;
+	flexParams->solidRestDistance = r * 0.5f;
+	flexParams->particleCollisionMargin = r * 0.5f;
+	flexParams->shapeCollisionMargin = r * 0.25f;
+	flexParams->collisionDistance = r * 0.5f; // Needed for tri-particle intersection
 }
 
 

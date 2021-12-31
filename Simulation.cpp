@@ -76,17 +76,11 @@ void FLEX_API::flexSolveThread() {
 		//unmap buffers
 		unmapBuffers();
 
-		//a: optimisation from my v4
-		NvFlexCopyDesc copyDesc;
-		copyDesc.dstOffset = 0;
-		copyDesc.srcOffset = 0;
-		copyDesc.elementCount = ParticleCount;
-
 		//write to device (async)
-		NvFlexSetParticles(flexSolver, particleBuffer, &copyDesc);
-		NvFlexSetVelocities(flexSolver, velocityBuffer, &copyDesc);
-		NvFlexSetPhases(flexSolver, phaseBuffer, &copyDesc);
-		NvFlexSetActive(flexSolver, activeBuffer, &copyDesc);
+		NvFlexSetParticles(flexSolver, particleBuffer, NULL);
+		NvFlexSetVelocities(flexSolver, velocityBuffer, NULL);
+		NvFlexSetPhases(flexSolver, phaseBuffer, NULL);
+		NvFlexSetActive(flexSolver, activeBuffer, NULL);
 		NvFlexSetActiveCount(flexSolver, ParticleCount);
 		NvFlexSetShapes(flexSolver, geometryBuffer,	geoPosBuffer, geoQuatBuffer, geoPrevPosBuffer, geoPrevQuatBuffer, geoFlagsBuffer, PropCount);
 		NvFlexSetParams(flexSolver, flexParams);
@@ -100,10 +94,10 @@ void FLEX_API::flexSolveThread() {
 		NvFlexUpdateSolver(flexSolver, simFPS * 8 * simTimescale + (float)(diff.count()) / 1000.f, 3, false);
 
 		//read back (async)
-		NvFlexGetParticles(flexSolver, particleBuffer, &copyDesc);
-		NvFlexGetVelocities(flexSolver, velocityBuffer, &copyDesc);
-		NvFlexGetPhases(flexSolver, phaseBuffer, &copyDesc);
-		NvFlexGetActive(flexSolver, activeBuffer, &copyDesc);
+		NvFlexGetParticles(flexSolver, particleBuffer, NULL);
+		NvFlexGetVelocities(flexSolver, velocityBuffer, NULL);
+		NvFlexGetPhases(flexSolver, phaseBuffer, NULL);
+		NvFlexGetActive(flexSolver, activeBuffer, NULL);
 
 		//dont forget to unlock our buffer
 		bufferMutex->unlock();
