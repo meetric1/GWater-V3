@@ -204,7 +204,7 @@ int FLEX_API::cleanLoneParticles() {
     return purged;
 }
 
-int FLEX_API::recalculateSimulatedParticles(float3 eyepos)
+/*int FLEX_API::recalculateSimulatedParticles(float3 eyepos)
 {
     bufferMutex->lock();
     if (!SimValid) {
@@ -229,7 +229,7 @@ int FLEX_API::recalculateSimulatedParticles(float3 eyepos)
 
     bufferMutex->unlock();
     return count;
-}
+}*/
 
 void FLEX_API::applyForce(float3 pos, float3 vel, float radius, bool linear) {
     bufferMutex->lock();

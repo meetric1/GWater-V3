@@ -22,7 +22,7 @@ extern int ParticleCount;
 extern int PropCount;
 extern bool SimValid;
 extern int RenderDistance;
-extern int SimulationDistance;
+//extern int SimulationDistance;
 
 extern void LUA_Print(std::string text);
 extern void LUA_Print(char*);
