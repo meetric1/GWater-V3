@@ -16,7 +16,7 @@ int ParticleCount = 0;
 int PropCount = 0;
 bool SimValid = true;
 int RenderDistance = pow(5000, 2);
-int SimulationDistance = pow(15000, 2);
+//int SimulationDistance = pow(15000, 2);
 
 //overloaded printlua func
 void LUA_Print(std::string text)
@@ -601,6 +601,7 @@ LUA_FUNCTION(GetRenderDistance) {
 	return 1;
 }
 
+/*
 LUA_FUNCTION(SetSimulationDistance) {
 	LUA->CheckType(-1, Type::Number);
 	SimulationDistance = pow(LUA->GetNumber(), 2);
@@ -621,6 +622,7 @@ LUA_FUNCTION(RecalculateSimulatedParticles) {
 	LUA->PushNumber(FLEX_Simulation->recalculateSimulatedParticles(pos));
 	return 1;
 }
+*/
 
 LUA_FUNCTION(GetParticleCount) {
 	LUA->PushNumber(ParticleCount);
@@ -635,7 +637,6 @@ LUA_FUNCTION(PopulateGWaterFunctions) {
 }
 
 void PopulateFunctions(ILuaBase* LUA) {
-
 	LUA->PushSpecial(SPECIAL_GLOB);
 	LUA->CreateTable();
 
@@ -668,9 +669,9 @@ void PopulateFunctions(ILuaBase* LUA) {
 	ADD_FUNC(GetData, "GetData");
 	ADD_FUNC(SetRenderDistance, "SetRenderDistance");
 	ADD_FUNC(GetRenderDistance, "GetRenderDistance");
-	ADD_FUNC(SetSimulationDistance, "SetSimulationDistance");
-	ADD_FUNC(GetSimulationDistance, "GetSimulationDistance");
-	ADD_FUNC(RecalculateSimulatedParticles, "RecalculateSimulatedParticles");
+	//ADD_FUNC(SetSimulationDistance, "SetSimulationDistance");
+	//ADD_FUNC(GetSimulationDistance, "GetSimulationDistance");
+	//ADD_FUNC(RecalculateSimulatedParticles, "RecalculateSimulatedParticles");
 
 	//forces
 	ADD_FUNC(SpawnForceField, "SpawnForceField");
