@@ -1,0 +1,27 @@
+name: Linter
+
+# Just runs GluaFixer https://github.com/FPtje/GLuaFixer on the repo, on every push & pull request.
+
+on:
+  push:
+    paths:
+    - 'Lua/lua/**'
+  pull_request:
+    paths:
+    - 'Lua/lua/**'
+  workflow_dispatch:
+
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: Download GluaFixer 1.18.2
+      run: |
+        curl -o glualint.zip -L https://github.com/FPtje/GLuaFixer/releases/download/1.18.2/glualint-1.18.2-linux.zip
+        unzip glualint.zip
+
+    - name: Lint Code
+      run: ./glualint Lua/lua
