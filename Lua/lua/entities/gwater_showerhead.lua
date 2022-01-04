@@ -1,7 +1,6 @@
 AddCSLuaFile()
 
 ENT.Type = "anim"
-
 ENT.Category		= "GWater"
 ENT.PrintName		= "Shower Head"
 ENT.Author			= "Mee & AndrewEathan (with help from PotatoOS)"
@@ -13,18 +12,36 @@ ENT.Spawnable		= true
 function ENT:Initialize()
 	self.Running = false
 	if CLIENT then return end
-	
-	self.FlowSound = CreateSound(self, "ambient/water/water_flow_loop1.wav")
 	self:SetModel("models/props_wasteland/prison_lamp001a.mdl")
 	self:SetSkin(1)
-	
 	self:PhysicsInit(SOLID_VPHYSICS)
 	self:SetMoveType(MOVETYPE_VPHYSICS)
 	self:SetSolid(SOLID_VPHYSICS)
 	self:SetUseType(SIMPLE_USE)
-	
-	local phys = self:GetPhysicsObject()
-	phys:SetMass(50)
+
+	self.FlowSound = CreateSound(self, "ambient/water/water_flow_loop1.wav")
+end
+
+function ENT:SpawnFunction(ply, tr, class)
+	if not tr.Hit then return end
+
+	local ent = ents.Create(class)
+	ent:SetModel("models/props_wasteland/prison_lamp001a.mdl")
+	ent:SetSkin(1)
+	ent:PhysicsInit(SOLID_VPHYSICS)
+	ent:SetMoveType(MOVETYPE_VPHYSICS)
+	ent:SetSolid(SOLID_VPHYSICS)
+	ent:SetUseType(SIMPLE_USE)
+	ent:SetPos(tr.HitPos + tr.HitNormal * 10)
+	ent:Spawn()
+	ent:Activate()
+
+	local phys = ent:GetPhysicsObject()
+	if phys:IsValid() then
+		phys:SetMass(50)
+	end
+
+	return ent
 end
 
 function ENT:Use()

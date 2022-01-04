@@ -22,7 +22,7 @@ end
 
 --file.exists only works on 64bit?
 local function loadGWater()
-    if file.Exists("lua/bin/gmcl_GWater_win64.dll", "MOD") then 
+    if file.Exists("lua/bin/gmcl_GWater_win64.dll", "MOD") and file.Exists("lua/bin/gmcl_GWater_win32.dll", "MOD") then 
         require("GWater") 
         gwater.AddConcaveMesh(triangulateWorld(), Vector(-33000, -33000, -33000), Vector(33000, 33000, 33000), Vector(), Angle())
         print("[GWATER]: Loaded module!")
@@ -57,6 +57,9 @@ local function loadGWater()
         gwater.HasModule = false
         gwater.NetworkParticleCount = 0
         hook.Run("GWaterInitialize")
+        if game.SinglePlayer() then
+            LocalPlayer():ConCommand("gwater_menu")
+        end
         
         print("[GWATER]: No DLL found!")
     end

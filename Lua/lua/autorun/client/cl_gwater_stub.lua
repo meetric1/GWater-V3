@@ -43,17 +43,9 @@ hook.Add("GWaterInitialize", "GWater.Stubs", function()
 	-- who cares about the difference
 	gwater.SpawnCubeExact = gwater.SpawnCube
     
-    function gwater.SpawnSphere(pos, radius, size, vel)
-    	local spawnparticle = gwater.SpawnParticle
-    	for z = -size.z, z <= size.z do
-    		for y = -size.y, y <= size.y do
-    			for x = -size.x, x < size.x do
-    				if x * x + y * y + z * z >= radius * radius then continue end
-    				local pos1 = Vector(pos.x + x * apart, pos.y + y * apart, pos.z + z * apart)
-    				spawnparticle(pos1, vel)
-    			end
-    		end
-    	end
+	--too lazy to write this lmao
+    function gwater.SpawnSphere(pos, radius, apart, vel)
+    	
     end
 	
 	gwater.Blackhole = no_op

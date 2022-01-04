@@ -6,6 +6,7 @@ if SERVER then
 	util.AddNetworkString("GWATER_SPAWNCUBE")
 	util.AddNetworkString("GWATER_SPAWNSPHERE")
 	util.AddNetworkString("GWATER_SWIMMING")
+	util.AddNetworkString("GWATER_REMOVE")
 
 	local swimmers = {}
 	--sadly easy to exploit, but still pretty awesome 
@@ -40,6 +41,7 @@ else
 		local enablenetworking = gwater.Convars["enablenetworking"]
 		local netlimit = gwater.Convars["maxnetparticles"]
 	
+		--cubes
 		net.Receive("GWATER_SPAWNCUBE", function()
 			if not gwater then return end
 			gwater.NetworkParticleCount = gwater.NetworkParticleCount or 0
@@ -48,13 +50,14 @@ else
 			local wsize = net.ReadVector()
 			local sum = wsize.x + wsize.y + wsize.z
 			
-			if sum > 30 then return end
-			if (not enablenetworking:GetBool() or gwater.NetworkParticleCount + sum > netlimit:GetInt()) then return end
+			if sum > 60 then return end
+			if (not enablenetworking:GetBool() or gwater.NetworkParticleCount + sum > netlimit:GetInt()) and owner ~= LocalPlayer() then return end
 	
 			gwater.NetworkParticleCount = gwater.NetworkParticleCount + sum
 			gwater.SpawnCubeExact(pos, wsize, 10, Vector(0, 0, 0))
 		end)
 		
+		--spheres
 		net.Receive("GWATER_SPAWNSPHERE", function()
 			if not gwater then return end
 			gwater.NetworkParticleCount = gwater.NetworkParticleCount or 0
@@ -68,7 +71,17 @@ else
 			gwater.NetworkParticleCount = gwater.NetworkParticleCount + wsize * wsize * wsize
 			gwater.SpawnSphere(pos, wsize, 10, Vector(0, 0, 0))
 		end)
-		
-		print("[GWater]: Loaded networking!")
+
+		--remove
+		net.Receive("GWATER_REMOVE", function()
+			if not gwater or not gwater.HasModule then return end
+			local pos = net.ReadVector()
+			local radius = net.ReadInt(16)
+			if radius == 0 then
+				gwater.RemoveAll()
+			else
+				gwater.Blackhole(pos, radius)
+			end
+		end)
 	end)
 end

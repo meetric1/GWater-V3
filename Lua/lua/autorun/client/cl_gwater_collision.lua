@@ -1,9 +1,11 @@
 local MAX_CONVEXES_PER_PROP = 8
+local MAX_COLLISIONS = 1000
+local collisionAmount = 0
 local propQueue = {}
 
 local function addPropMesh(prop)
+    if collisionAmount > MAX_COLLISIONS then return end
     if not prop or not prop:IsValid() then return end
-    prop.GWATER_UPLOADED = true
     local model = prop:GetModel()
     if not model then return end
 	if not util.GetModelMeshes(model) then return end
@@ -28,18 +30,18 @@ local function addPropMesh(prop)
             end
 			gwater.AddConvexMesh(finalMesh, prop:OBBMins() - Vector(10), prop:OBBMaxs() + Vector(10), prop:GetPos(), prop:GetAngles())
 			table.insert(gwater.Meshes, prop)
-            print("[GWATER]: Added convex")
+            collisionAmount = collisionAmount + 1
 		end
 	else   --vismesh
 		local finalMesh = {}
 		for k, mesh in pairs(util.GetModelMeshes(model)) do
 			for k, tri in pairs(mesh.triangles) do 
-                table.insert(finalMesh, tri.pos) 
+                table.insert(finalMesh, tri.pos)
             end
 		end
 		gwater.AddConcaveMesh(finalMesh, prop:OBBMins() - Vector(10), prop:OBBMaxs() + Vector(10), prop:GetPos(), prop:GetAngles())
 		table.insert(gwater.Meshes, prop)
-        print("[GWATER]: Added concave")
+        collisionAmount = collisionAmount + 1
 	end
 
     --remove physmesh on client
@@ -55,8 +57,11 @@ hook.Add("GWaterInitialized", "GWater.Collision", function()
         whitelist = gwater.Whitelist
         local props = ents.GetAll()
         for k, v in ipairs(props) do
+            if not v:IsValid() then continue end
             if v.GWATER_UPLOADED then continue end
             if not whitelist[v:GetClass()] then continue end
+            
+            v.GWATER_UPLOADED = true
             table.insert(propQueue, v)
         end
     end)
@@ -66,7 +71,7 @@ hook.Add("GWaterInitialized", "GWater.Collision", function()
         for k, v in ipairs(gwater.Meshes) do
             if not v:IsValid() or not whitelist[v:GetClass()] then 
                 gwater.RemoveMesh(k)
-                print("[GWater]: Removed mesh " .. k)
+                collisionAmount = collisionAmount - 1
                 table.remove(gwater.Meshes, k)
                 break
             end

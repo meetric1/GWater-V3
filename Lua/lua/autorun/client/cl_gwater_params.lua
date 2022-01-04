@@ -8,7 +8,7 @@ hook.Add("GWaterInitialize", "GWater.Params", function()
 			desc = "Smoothes particle velocities",
 			default = 0,
 			min = 0,
-			max = 1
+			max = 100
 		},
 		drag = {
 			prettyname = "Drag",

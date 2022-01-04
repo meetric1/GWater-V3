@@ -10,26 +10,14 @@ ENT.Instructions	= ""
 ENT.Editable 		= false
 ENT.Spawnable		= true
 
+print("fuck you")
+
 function ENT:SpawnFunction(owner)
 	if SERVER then
-		-- apparently somehow i don't have this in singleplayer? added a check just to be safe
-		if owner.SendLua then
-			owner:SendLua([[
-				if gwater and gwater.HasModule then 
-					gwater.NetworkParticleCount = 0 
-					gwater.RemoveAll() 
-				else 
-					notification.AddLegacy("You don't have GWater, dummy!", NOTIFY_ERROR, 3) 
-				end
-			]])
-		end
-	else
-		if gwater and gwater.HasModule then 
-			gwater.NetworkParticleCount = 0 
-			gwater.RemoveAll() 
-		else 
-			notification.AddLegacy("You don't have GWater, dummy!", NOTIFY_ERROR, 3) 
-		end
+		net.Start("GWATER_REMOVE")
+			net.WriteVector(Vector())
+			net.WriteInt(0, 16)
+		net.Broadcast()
 	end
 	
 	return nil
