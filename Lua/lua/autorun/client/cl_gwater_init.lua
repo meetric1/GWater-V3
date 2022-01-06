@@ -22,6 +22,7 @@ hook.Add("GWaterInitialized", "GWater.Startup", function()
                 isSwimming = true
                 net.Start("GWATER_SWIMMING")
                     net.WriteBool(true)
+                    net.WriteFloat(1)
                 net.SendToServer()
                 LocalPlayer():EmitSound("Physics.WaterSplash")
             end
@@ -29,6 +30,7 @@ hook.Add("GWaterInitialized", "GWater.Startup", function()
             isSwimming = false
             net.Start("GWATER_SWIMMING")
                 net.WriteBool(false)
+                net.WriteFloat(1)
             net.SendToServer()
             LocalPlayer():EmitSound("Physics.WaterSplash")
         end
