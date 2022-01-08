@@ -1,5 +1,5 @@
 local MAX_CONVEXES_PER_PROP = 8
-local MAX_COLLISIONS = 2048
+local MAX_COLLISIONS = 1000
 local collisionAmount = 0
 local propQueue = propQueue or {}
 local sentQueue = sentQueue or {}
