@@ -132,12 +132,11 @@ public:
     void flexSolveThread();
     void removeAllParticles();
     void removeAllProps();
-    void removeInRadius(float3 pos, float radius);
+    int removeInRadius(float3 pos, float radius);
 
     void cullParticles();
     void cleanLostParticles();
     int cleanLoneParticles();
-    //int recalculateSimulatedParticles(float3 eyepos); // returns how many particles are simulated
 
     void applyForce(float3 pos, float3 vel, float radius, bool linear);
     void applyForceOutwards(float3 pos, float strength, float radius, bool linear);

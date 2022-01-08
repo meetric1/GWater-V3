@@ -8,32 +8,31 @@ if SERVER then
 	util.AddNetworkString("GWATER_SWIMMING")
 	util.AddNetworkString("GWATER_REMOVE")
 
-	local swimmers = {}
-	--sadly easy to exploit, but still pretty awesome 
+	-- thanks kodya, very cool
+	-- sadly easy to exploit, but still pretty awesome 
 	net.Receive("GWATER_SWIMMING", function(len, ply)
 		if not ply then return end
 		local bool = net.ReadBool()
-		if bool and ply:GetMoveType() == 2 then 
-			ply:SetMoveType(4) 
-			ply.GWATER_SWIMMING = true
-			table.insert(swimmers, ply)
-		else 
-			if ply:GetMoveType() == 4 then
-				ply:SetMoveType(2) 
-			end
-			ply.GWATER_SWIMMING = false 
-		end
+		local spd = net.ReadFloat()
+		
+		ply.GWATER_SWIMMING = bool
+		ply.GWATER_SPEED = spd
+		
+		net.Start("GWATER_SWIMMING")
+			net.WriteEntity(ply)
+			net.WriteBool(bool)
+		net.Broadcast()
 	end)
-
-	hook.Add("Think", "GWATER_PLAYERS_SWIMMING", function()
-		for k, v in ipairs(swimmers) do
-			if not v or not v.GWATER_SWIMMING then 
-				table.remove(swimmers, k) 
-				break 
-			end
-			
-			local addVel = Vector(0, 0, (v:KeyDown(IN_JUMP) and 1 or 0) * 20 - 1)
-			v:SetVelocity(-v:GetVelocity() * 0.15 + addVel)	--setvelocity on players is actually apply force
+	
+	net.Receive("GWATER_REMOVE", function(len, ply)
+		local pos = net.ReadVector()
+		local r = net.ReadInt(16)
+		
+		if ply:IsAdmin() then
+			net.Start("GWATER_REMOVE")
+				net.WriteVector(pos)
+				net.WriteInt(r, 16)
+			net.Broadcast()
 		end
 	end)
 else
@@ -84,4 +83,60 @@ else
 			end
 		end)
 	end)
+
+	net.Receive("GWATER_SWIMMING", function()
+		local ply = net.ReadEntity()
+		local swim = net.ReadBool()
+		ply.GWATER_SWIMMING = swim
+	end)
 end
+
+
+-- cool swimming animation & movement
+-- by kodya, thanks, very cool
+
+local gravity_convar = GetConVar("sv_gravity")
+
+hook.Add("CalcMainActivity", "GWater.Swimming", function(ply)
+	if not ply.GWATER_SWIMMING or ply:IsOnGround() then return end
+	return ACT_MP_SWIM, -1
+end)
+
+hook.Add("Move", "GWater.Swimming", function(ply, move)
+	if not ply.GWATER_SWIMMING then return end
+
+    local vel = move:GetVelocity()
+    local ang = move:GetMoveAngles()
+
+    local acel = 
+    (ang:Forward() * move:GetForwardSpeed()) +
+    (ang:Right() * move:GetSideSpeed()) +
+    (ang:Up() * move:GetUpSpeed())
+
+    local aceldir = acel:GetNormalized()
+    local acelspeed = math.min(acel:Length(), ply:GetMaxSpeed()) * ply.GWATER_SPEED
+    acel = aceldir * acelspeed * 2
+
+	if bit.band(move:GetButtons(), IN_JUMP) ~= 0 then
+        acel.z = acel.z + ply:GetMaxSpeed()
+    end
+
+    vel = vel + acel * FrameTime()
+    vel = vel * (1 - FrameTime() * 2)
+
+   	local pgrav = ply:GetGravity() == 0 and 1 or ply:GetGravity()
+    local gravity = pgrav * gravity_convar:GetFloat() * 0.5
+    vel.z = vel.z + FrameTime() * gravity
+
+    move:SetVelocity(vel * 0.99)
+end)
+
+hook.Add("FinishMove", "GWater.Swimming", function(ply, move)
+	if not ply.GWATER_SWIMMING then return end
+    local vel = move:GetVelocity()
+    local pgrav = ply:GetGravity() == 0 and 1 or ply:GetGravity()
+    local gravity = pgrav * gravity_convar:GetFloat() * 0.5
+    
+    vel.z = vel.z + FrameTime() * gravity
+    move:SetVelocity(vel)
+end)

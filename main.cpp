@@ -40,26 +40,36 @@ void LUA_Print(char* text)
 
 ////////// LUA FUNCTIONS /////////////
 //renders particles
-LUA_FUNCTION(RenderParticles) 
-{
-	//get headpos and headang
-	LUA->CheckType(1, Type::Vector);
-	LUA->CheckType(2, Type::Vector);
+LUA_FUNCTION(RenderParticles) {
+	LUA->CheckType(-1, Type::Vector);	//dir left
+	LUA->CheckType(-2, Type::Vector);	//dir right
+	LUA->CheckType(-3, Type::Vector);	//dir down
+	LUA->CheckType(-4, Type::Vector);	//dir up
+	LUA->CheckType(-5, Type::Vector);	//pos
 
-	float3 dir = float3(LUA->GetVector());
-	float3 pos = float3(LUA->GetVector(-2));
+	float3 directionArray[4];
+	for (int i = 0; i < 4; i++)
+		directionArray[i] = LUA->GetVector(-i - 1);
+	float3 pos = float3(LUA->GetVector(-5));
 
-	LUA->Pop(2);
+	LUA->Pop(5);
 	LUA->PushSpecial(SPECIAL_GLOB);
 	LUA->GetField(-1, "render");
 
 	float particleRadius = FLEX_Simulation->radius;
-
+	int numParticlesRendered = 0;
 	//loop thru all particles, any that we cannot see are not rendered
 	for (int i = 0; i < ParticleCount; i++) {
 		float3 thisPos = float3(particleBufferHost[i]);
 
-		if (Dot(thisPos - pos, dir) < 0 || DistanceSquared(thisPos, pos) > RenderDistance) continue;
+		bool skip = false;
+		for (int i = 0; i < 4; i++) {
+			if (Dot(thisPos - pos, directionArray[i]) < 0) {
+				skip = true;
+			}
+		}
+
+		if (skip || DistanceSquared(thisPos, pos) > RenderDistance) continue;
 
 		Vector gmodPos;
 		gmodPos.x = thisPos.x;
@@ -72,10 +82,12 @@ LUA_FUNCTION(RenderParticles)
 		LUA->PushNumber(particleRadius);
 		LUA->PushNumber(particleRadius);
 		LUA->Call(3, 0);	//pops literally everything above except render and _G
+
+		numParticlesRendered++;
 	}
 
 	LUA->Pop(2); //pop _G and render
-	LUA->PushNumber(ParticleCount);
+	LUA->PushNumber(numParticlesRendered);
 
 	return 1;
 }
@@ -408,8 +420,8 @@ LUA_FUNCTION(SetMeshPos) {
 LUA_FUNCTION(Blackhole) {
 	LUA->CheckType(1, Type::Vector); // pos
 	LUA->CheckType(2, Type::Number); // radius
-	FLEX_Simulation->removeInRadius(LUA->GetVector(-2), LUA->GetNumber());
-	return 0;
+	LUA->PushNumber(FLEX_Simulation->removeInRadius(LUA->GetVector(-2), LUA->GetNumber()));
+	return 1;
 }
 
 // Andrew: this applies force to particles in an area
@@ -601,29 +613,6 @@ LUA_FUNCTION(GetRenderDistance) {
 	return 1;
 }
 
-/*
-LUA_FUNCTION(SetSimulationDistance) {
-	LUA->CheckType(-1, Type::Number);
-	SimulationDistance = pow(LUA->GetNumber(), 2);
-	if (SimulationDistance < 0) SimulationDistance = 0;
-	LUA->Pop();
-	return 0;
-}
-
-LUA_FUNCTION(GetSimulationDistance) {
-	LUA->PushNumber(sqrt(SimulationDistance));
-	return 1;
-}
-
-//A: this is an internal function, dont use it future devs
-LUA_FUNCTION(RecalculateSimulatedParticles) {
-	LUA->CheckType(1, Type::Vector);
-	float3 pos = float3(LUA->GetVector());
-	LUA->PushNumber(FLEX_Simulation->recalculateSimulatedParticles(pos));
-	return 1;
-}
-*/
-
 LUA_FUNCTION(GetParticleCount) {
 	LUA->PushNumber(ParticleCount);
 	return 1;
@@ -651,11 +640,6 @@ void PopulateFunctions(ILuaBase* LUA) {
 	ADD_FUNC(GetMaxParticles, "GetMaxParticles");
 	ADD_FUNC(GetParticleCount, "GetParticleCount");
 
-	//A: i don't recommend using these, these are just available for the sake of being here
-	//ADD_FUNC(SetParticlePos, "SetParticlePos");
-	//ADD_FUNC(GetParticlePos, "GetParticlePos");
-	//ADD_FUNC(RemoveParticle, "RemoveParticle");
-
 	//meshes
 	ADD_FUNC(AddConvexMesh, "AddConvexMesh");
 	ADD_FUNC(AddConcaveMesh, "AddConcaveMesh");
@@ -669,9 +653,6 @@ void PopulateFunctions(ILuaBase* LUA) {
 	ADD_FUNC(GetData, "GetData");
 	ADD_FUNC(SetRenderDistance, "SetRenderDistance");
 	ADD_FUNC(GetRenderDistance, "GetRenderDistance");
-	//ADD_FUNC(SetSimulationDistance, "SetSimulationDistance");
-	//ADD_FUNC(GetSimulationDistance, "GetSimulationDistance");
-	//ADD_FUNC(RecalculateSimulatedParticles, "RecalculateSimulatedParticles");
 
 	//forces
 	ADD_FUNC(SpawnForceField, "SpawnForceField");

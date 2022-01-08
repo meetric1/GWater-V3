@@ -1,29 +1,32 @@
 AddCSLuaFile()
-if SERVER then return end
+if SERVER then
+	return
+end
 
 local function triangulateWorld()
-    local surfaces = game.GetWorld():GetBrushSurfaces()
+	local surfaces = game.GetWorld():GetBrushSurfaces()
 	local m = {}
-
+	
 	for i = 1, #surfaces do
-      if surfaces[i]:IsNoDraw() then continue end
-
-      local surface = surfaces[i]:GetVertices()
-      for i = 3, #surface do
-        local len = #m
-        m[len + 1] = Vector(surface[1].x, surface[1].y, surface[1].z)
-        m[len + 2] = Vector(surface[i - 1].x, surface[i - 1].y, surface[i - 1].z)
-        m[len + 3] = Vector(surface[i].x, surface[i].y, surface[i].z)
-	  	end
+		if surfaces[i]:IsNoDraw() then continue end
+		local surface = surfaces[i]:GetVertices()
+		for i = 3, #surface do
+			local len = #m
+			m[len + 1] = Vector(surface[1].x, surface[1].y, surface[1].z)
+			m[len + 2] = Vector(surface[i - 1].x, surface[i - 1].y, surface[i - 1].z)
+			m[len + 3] = Vector(surface[i].x, surface[i].y, surface[i].z)
+		end
 	end
-	  
+	
 	return m
 end
+
 
 --file.exists only works on 64bit?
 local function loadGWater()
     if file.Exists("lua/bin/gmcl_GWater_win64.dll", "MOD") and file.Exists("lua/bin/gmcl_GWater_win32.dll", "MOD") then 
-        require("GWater") 
+        require("GWater")
+        
         gwater.AddConcaveMesh(triangulateWorld(), Vector(-33000, -33000, -33000), Vector(33000, 33000, 33000), Vector(), Angle())
         print("[GWATER]: Loaded module!")
         

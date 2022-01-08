@@ -85,12 +85,12 @@ void FLEX_API::freeProp(int id) {
     PropCount--;
 }
 
-void FLEX_API::removeInRadius(float3 pos, float radius) {
+int FLEX_API::removeInRadius(float3 pos, float radius) {
     bufferMutex->lock();
 
     if (!SimValid) {
         bufferMutex->unlock();
-        return;
+        return 0;
     }
 
     mapBuffers();
@@ -98,9 +98,10 @@ void FLEX_API::removeInRadius(float3 pos, float radius) {
     //remember we are using distance2 (distance squared) we must follow system of equations
     //dist = sqrt((x_2 - x_1)^2 + (y_2 - y_1) ^2) is the same as d^2 = (x_2 - x_1)^2 + (y_2-y_1)^2 with (^ = pow)
     //square root is pretty expensive especially in large amounts, and we should optimize best we can to avoid it, this is why we use distance2()
-    radius *= 2;
+    radius = radius * radius;
 
     int n = 0;
+    int numParticlesRemoved = 0;
     int num = ParticleCount;
     for (int i = 0; i < num; i++) {
         if (DistanceSquared(simBuffers->particles[i], pos) >= radius) {
@@ -111,12 +112,14 @@ void FLEX_API::removeInRadius(float3 pos, float radius) {
         }
         else {
             ParticleCount--;
+            numParticlesRemoved++;
         }
     }
 
     unmapBuffers();
-
     bufferMutex->unlock();
+
+    return numParticlesRemoved;
 }
 
 // Culls particles outside of maxParticles, this is only to be used for maxParticles changes
@@ -204,33 +207,6 @@ int FLEX_API::cleanLoneParticles() {
     return purged;
 }
 
-/*int FLEX_API::recalculateSimulatedParticles(float3 eyepos)
-{
-    bufferMutex->lock();
-    if (!SimValid) {
-        bufferMutex->unlock();
-        return 0;
-    }
-
-    int count = 0;
-    mapBuffers();
-        for (int i = 0; i < ParticleCount; i++) {
-            float dist = DistanceSquared(simBuffers->particles[i], eyepos);
-            if (dist <= SimulationDistance) {
-                simBuffers->activeIndices[i] = i;
-                count++;
-            }
-            else
-            {
-                simBuffers->activeIndices[i] = 0;
-            }
-        }
-    unmapBuffers();
-
-    bufferMutex->unlock();
-    return count;
-}*/
-
 void FLEX_API::applyForce(float3 pos, float3 vel, float radius, bool linear) {
     bufferMutex->lock();
     if (!SimValid) {
@@ -240,7 +216,7 @@ void FLEX_API::applyForce(float3 pos, float3 vel, float radius, bool linear) {
 
     mapBuffers();
 
-    radius *= 2;
+    radius = radius * radius;
 
     int num = ParticleCount;
     for (int i = 0; i < num; i++) {
@@ -264,7 +240,7 @@ void FLEX_API::applyForceOutwards(float3 pos, float strength, float radius, bool
 
     mapBuffers();
 
-    radius *= 2;
+    radius = radius * radius;
 
     int num = ParticleCount;
     for (int i = 0; i < num; i++) {
@@ -272,7 +248,7 @@ void FLEX_API::applyForceOutwards(float3 pos, float strength, float radius, bool
         if (dist <= radius) {
             float theta = 1 - dist / radius;
             float3 vel = normalize(pos - float3(simBuffers->particles[i])) * strength;
-            simBuffers->velocities[i] = simBuffers->velocities[i] + vel * (linear ? theta : 1);
+            simBuffers->velocities[i] = simBuffers->velocities[i] - vel * (linear ? theta : 1);
         }
     }
     unmapBuffers();
@@ -333,17 +309,6 @@ void FLEX_API::deleteForceField(int ID) {
 void FLEX_API::removeAllParticles() {
     particleQueue.clear();
     ParticleCount = 0;
-}
-
-
-void FLEX_API::removeAllProps()
-{
-    // andrew: ???
-    // this wasn't defined when i noticed that intellisense pointed it out
-    // i guess i'll try to make it for you but this isn't used anywhere so idk
-    for (int i = 0; i < props.size(); i++) {
-        freeProp(i);
-    }
 }
 
 //flex startup
