@@ -7,6 +7,7 @@ if SERVER then
 	util.AddNetworkString("GWATER_SPAWNSPHERE")
 	util.AddNetworkString("GWATER_SWIMMING")
 	util.AddNetworkString("GWATER_REMOVE")
+	util.AddNetworkString("GWATER_NETWORKMAP")
 
 	-- thanks kodya, very cool
 	-- sadly easy to exploit, but still pretty awesome 
@@ -53,7 +54,7 @@ else
 			if (not enablenetworking:GetBool() or gwater.NetworkParticleCount + sum > netlimit:GetInt()) and owner ~= LocalPlayer() then return end
 	
 			gwater.NetworkParticleCount = gwater.NetworkParticleCount + sum
-			gwater.SpawnCubeExact(pos, wsize, 10, Vector(0, 0, 0))
+			gwater.SpawnCubeExact(pos, wsize, gwater.GetRadius(), Vector(0, 0, 0))
 		end)
 		
 		--spheres
@@ -68,7 +69,7 @@ else
 			if (not enablenetworking:GetBool() or gwater.NetworkParticleCount + wsize * wsize * wsize > netlimit:GetInt()) and owner ~= LocalPlayer() then return end
 			
 			gwater.NetworkParticleCount = gwater.NetworkParticleCount + wsize * wsize * wsize
-			gwater.SpawnSphere(pos, wsize, 10, Vector(0, 0, 0))
+			gwater.SpawnSphere(pos, wsize, gwater.GetRadius(), Vector(0, 0, 0))
 		end)
 
 		--remove

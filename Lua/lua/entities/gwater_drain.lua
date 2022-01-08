@@ -29,6 +29,6 @@ function ENT:Think()
 	if not gwater then return end
 
 	gwater.Blackhole(self:GetPos(), 12)
-	gwater.ApplyForceOutwards(self:GetPos(), -5, 50, false);
+	gwater.ApplyForceOutwards(self:GetPos(), -5, 24, false);
 	self:SetNextClientThink(CurTime() + 0.1)
 end

@@ -214,7 +214,6 @@ local function loadGWater()
 			gwater_fountain = true,
 			gwater_blackhole = true,
 			gwater_bathtub = true,
-			player = true,
 			func_door = true,
 		}
 		

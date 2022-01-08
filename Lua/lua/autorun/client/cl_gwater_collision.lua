@@ -19,7 +19,6 @@ local CUBE_110 = Vector(1, 1, 0)
 local CUBE_111 = Vector(1, 1, 1)
 --adds a cube shaped mesh, hello from Voxyllabus!
 local function cuboidMesh(triangles, mins, maxs)
-	--print( "Created cube mesh with:", mins, maxs )
 	maxs = maxs - mins
 	table.insert(triangles, mins + CUBE_000 * maxs)
 	table.insert(triangles, mins + CUBE_010 * maxs)
@@ -78,13 +77,9 @@ local ignoreSENTs = {
 local function addPropMesh(prop)
 	if collisionAmount > MAX_COLLISIONS then return end
 	if not prop or not prop:IsValid() then return end
-	
-	print( "testing", prop )
-	--print("adding mesh for:", prop, prop:GetPhysicsObject(), prop:GetPhysicsObject():IsValid(), prop:IsScripted())
 	--Handle SENTs by only their Physics collider
 	if not ignoreSENTs[prop:GetClass()] and prop:GetPhysicsObject():IsValid() and prop:IsScripted() then
 		--only use this for 
-		print( "sent", prop )
 		for k, convex in pairs(prop:GetPhysicsObject():GetMeshConvexes()) do 
 			local finalMesh = {}
 			for k, tri in pairs(convex) do
@@ -94,13 +89,11 @@ local function addPropMesh(prop)
 			table.insert(gwater.Meshes, prop)
 			collisionAmount = collisionAmount + 1
 		end
-		--print("added SENT:", prop)
 		return
 	end
 	
 	--Only use brush surfaces for brushes
 	if movingBrushes[prop:GetClass()] then
-		--print("added Brush:", prop)
 		local finalMesh = {}
 		for k, surfinfo in pairs(prop:GetBrushSurfaces()) do 
 			local vertices = surfinfo:GetVertices()
@@ -120,19 +113,17 @@ local function addPropMesh(prop)
 	end
 	
 	--handle players like a box shape
+	--[[
 	if prop:GetClass() == "player" then
-		local mins, maxs = prop:GetHull()
+		local mins, maxs = prop:GetHull() / 2
 		local triangles = {}
 		cuboidMesh(triangles, mins, maxs)
 		
-		--PrintTable( triangles )
 		gwater.AddConvexMesh(triangles, mins - margin, maxs + margin, prop:GetPos(), prop:GetAngles())
 		table.insert(gwater.Meshes, prop)
 		collisionAmount = collisionAmount + 1
 		return
-	end
-	
-	print( "default checking", prop )
+	end]]
 	
 	local model = prop:GetModel()
 	if not model then return end
@@ -196,7 +187,6 @@ hook.Add("GWaterInitialized", "GWater.Collision", function()
 	end)
 	]]--
 	
-	whitelist = gwater.Whitelist
 	local props = ents.GetAll()
 	for k, v in ipairs(props) do
 		if v:IsValid() and not v.GWATER_UPLOADED and whitelist[v:GetClass()] then 
@@ -204,36 +194,20 @@ hook.Add("GWaterInitialized", "GWater.Collision", function()
 				sentQueue[ v:EntIndex() ] = v
 			else --not scripted ents dont matter, just add them
 				table.insert(propQueue, v)
-				--print("Adding entity", ent)
 				v.GWATER_UPLOADED = true
 			end
 		end 
 	end
 	--adds props using OnEntityCreated hook
 	hook.Add("OnEntityCreated", "GWater.EntityHandler", function(ent)
-		--print( "adding", ent, ent:IsValid(), not ent.GWATER_UPLOADED, whitelist[ent:GetClass()], ent:IsScripted() )
-		print( "adding", ent, ent:IsScripted() )
 		if ent:IsValid() and not ent.GWATER_UPLOADED and whitelist[ent:GetClass()] then 
 			if ent:IsScripted() and not ent:GetPhysicsObject():IsValid() then --sents do phys only
 				sentQueue[ ent:EntIndex() ] = ent
 			else --not scripted ents dont matter, just add them
 				table.insert(propQueue, ent)
-				--print("Adding entity", ent)
 				ent.GWATER_UPLOADED = true
 			end
 		end 
-	end)
-	
-	--Adding players is a bit strange, there is no proper way to do it, as the above event fires too early for players
-	timer.Create("GWATER_ADD_PLAYERS", 2, 0, function()
-		whitelist = gwater.Whitelist
-		local players = player.GetAll()
-		for k, v in ipairs(players) do
-			if whitelist[v:GetClass()] and not v.GWATER_UPLOADED and gwater.Convars["dophysplayer"]:GetBool() then
-				v.GWATER_UPLOADED = true
-				table.insert(propQueue, v)
-			end
-		end
 	end)
 	
 	--update props, forcefields, and queue

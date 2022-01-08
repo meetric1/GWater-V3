@@ -37,7 +37,7 @@ void FLEX_API::initParams() {
 	flexParams->particleCollisionMargin = 0.f;
 	flexParams->shapeCollisionMargin = 0.f;
 	flexParams->collisionDistance = 0.f; // Needed for tri-particle intersection
-	flexParams->sleepThreshold = 1.f;
+	flexParams->sleepThreshold = 0.1f;
 	flexParams->shockPropagation = 0.0f;
 	flexParams->restitution = 1.0f;
 
@@ -45,7 +45,7 @@ void FLEX_API::initParams() {
 	flexParams->maxAcceleration = 128.0f;	// approximately 10x gravity
 	flexParams->relaxationMode = eNvFlexRelaxationLocal;
 	flexParams->relaxationFactor = 0.0f;
-	flexParams->solidPressure = 0.0f;
+	flexParams->solidPressure = 0.5f;
 	flexParams->adhesion = 0.0f;
 	flexParams->cohesion = 0.01f;
 	flexParams->surfaceTension = 0.0f;

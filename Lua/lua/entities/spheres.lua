@@ -17,7 +17,7 @@ for k,v in ipairs(xyz) do
 	ENT.Type = "point"
 	ENT.Base = "base_point"
 	ENT.Spawnable = true
-	ENT.AdminOnly = k == 20 -- if it's the 20 size sphere, make it admin only
+	ENT.AdminOnly = (v == 20) -- if it's the 20 size sphere, make it admin only
 	ENT.PrintName = "Sphere (" .. v .. ")"
 	ENT.Category = "GWater"
 	ENT.Author = "Mee & AndrewEathan (with help from PotatoOS)"
