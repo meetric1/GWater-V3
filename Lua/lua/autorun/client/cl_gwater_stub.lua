@@ -56,6 +56,7 @@ hook.Add("GWaterInitialize", "GWater.Stubs", function()
 	gwater.Materials = {
 		water = CreateMaterial("GWater_Water", "Refract", {
 	  		["$refractamount"] = 0.01,
+			["$model"] = 1,
 	   		["$refracttint"] = "[0.75 1 2]",
 	        ["$normalmap"] = "shadertest/noise_normal",
 	        ["$dudvmap"] = "dev/water_dudv",

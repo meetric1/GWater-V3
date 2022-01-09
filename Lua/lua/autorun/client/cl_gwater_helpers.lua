@@ -16,6 +16,4 @@ hook.Add("GWaterInitialize", "GWater.Helpers", function()
 	function gwater.GetModuleVersionForLua()
 		return 1.1 -- change this when needed
 	end
-	
-	print("[GWATER]: Loaded helpers file!")
 end)

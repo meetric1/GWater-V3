@@ -404,6 +404,24 @@ LUA_FUNCTION(AddConcaveMesh) {
 	return 1;
 }
 
+LUA_FUNCTION(AddCapsuleMesh) {
+	LUA->CheckType(1, Type::Number); // Length
+	LUA->CheckType(2, Type::Number); // Radius
+	LUA->CheckType(3, Type::Vector); // prop pos
+	LUA->CheckType(4, Type::Angle); // prop angle
+
+	//lock buffer
+	bufferMutex->lock();
+	if (!SimValid) {
+		bufferMutex->unlock();
+		return 0;
+	}
+
+	FLEX_Simulation->addMeshCapsule(LUA);
+	bufferMutex->unlock();
+
+	return 0;
+}
 
 LUA_FUNCTION(SetMeshPos) {
 	LUA->CheckType(1, Type::Vector); // pos
@@ -643,6 +661,7 @@ void PopulateFunctions(ILuaBase* LUA) {
 	//meshes
 	ADD_FUNC(AddConvexMesh, "AddConvexMesh");
 	ADD_FUNC(AddConcaveMesh, "AddConcaveMesh");
+	ADD_FUNC(AddCapsuleMesh, "AddCapsuleMesh");
 	ADD_FUNC(SetMeshPos, "SetMeshPos");
 	ADD_FUNC(RemoveMesh, "RemoveMesh");
 

@@ -55,7 +55,7 @@ else
 			if (not enablenetworking:GetBool() or gwater.NetworkParticleCount + sum > netlimit:GetInt()) and owner ~= LocalPlayer() then return end
 	
 			gwater.NetworkParticleCount = gwater.NetworkParticleCount + sum
-			gwater.SpawnCubeExact(pos, wsize, gwater.GetRadius(), Vector(0, 0, 0))
+			gwater.SpawnCubeExact(pos, wsize, gwater.GetRadius() * 0.9, Vector(0, 0, 0))
 		end)
 		
 		--spheres
@@ -70,7 +70,7 @@ else
 			if (not enablenetworking:GetBool() or gwater.NetworkParticleCount + wsize * wsize * wsize > netlimit:GetInt()) and owner ~= LocalPlayer() then return end
 			
 			gwater.NetworkParticleCount = gwater.NetworkParticleCount + wsize * wsize * wsize
-			gwater.SpawnSphere(pos, wsize, gwater.GetRadius(), Vector(0, 0, 0))
+			gwater.SpawnSphere(pos, wsize, gwater.GetRadius() * 0.9, Vector(0, 0, 0))
 		end)
 
 		--remove

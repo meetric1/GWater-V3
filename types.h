@@ -122,6 +122,7 @@ public:
     void addParticle(Vector pos, Vector vel);
     void addMeshConcave(GarrysMod::Lua::ILuaBase* LUA);
     void addMeshConvex(GarrysMod::Lua::ILuaBase* LUA);
+    void addMeshCapsule(GarrysMod::Lua::ILuaBase* LUA);
     void updateMeshPos(Vector pos, QAngle ang, int id);
     void freeProp(int ID);
 
