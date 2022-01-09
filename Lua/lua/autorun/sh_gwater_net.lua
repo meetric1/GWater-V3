@@ -22,6 +22,7 @@ if SERVER then
 		net.Start("GWATER_SWIMMING")
 			net.WriteEntity(ply)
 			net.WriteBool(bool)
+			net.WriteFloat(spd)
 		net.Broadcast()
 	end)
 	
@@ -88,7 +89,9 @@ else
 	net.Receive("GWATER_SWIMMING", function()
 		local ply = net.ReadEntity()
 		local swim = net.ReadBool()
+		local spd = net.ReadFloat()
 		ply.GWATER_SWIMMING = swim
+		ply.GWATER_SPEED = spd
 	end)
 end
 
