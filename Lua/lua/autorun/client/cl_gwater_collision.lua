@@ -6,63 +6,7 @@ local sentQueue = sentQueue or {}
 
 local margin = Vector(16, 16, 16)
 local sentMaxAttempts = 256 --how many ticks can a SENT try to have a physprop?
-local propQueueSpeed = 4 --how many entities can be validated per tick?
-
---cube corners
-local CUBE_000 = Vector(0, 0, 0)
-local CUBE_001 = Vector(0, 0, 1)
-local CUBE_010 = Vector(0, 1, 0)
-local CUBE_011 = Vector(0, 1, 1)
-local CUBE_100 = Vector(1, 0, 0)
-local CUBE_101 = Vector(1, 0, 1)
-local CUBE_110 = Vector(1, 1, 0)
-local CUBE_111 = Vector(1, 1, 1)
---adds a cube shaped mesh, hello from Voxyllabus!
-local function cuboidMesh(triangles, mins, maxs)
-	maxs = maxs - mins
-	table.insert(triangles, mins + CUBE_000 * maxs)
-	table.insert(triangles, mins + CUBE_010 * maxs)
-	table.insert(triangles, mins + CUBE_001 * maxs)
-	table.insert(triangles, mins + CUBE_001 * maxs)
-	table.insert(triangles, mins + CUBE_010 * maxs)
-	table.insert(triangles, mins + CUBE_011 * maxs)
-
-	table.insert(triangles, mins + CUBE_100 * maxs)
-	table.insert(triangles, mins + CUBE_101 * maxs)
-	table.insert(triangles, mins + CUBE_110 * maxs)
-	table.insert(triangles, mins + CUBE_110 * maxs)
-	table.insert(triangles, mins + CUBE_101 * maxs)
-	table.insert(triangles, mins + CUBE_111 * maxs)
-
-	table.insert(triangles, mins + CUBE_000 * maxs)
-	table.insert(triangles, mins + CUBE_001 * maxs)
-	table.insert(triangles, mins + CUBE_100 * maxs)
-	table.insert(triangles, mins + CUBE_100 * maxs)
-	table.insert(triangles, mins + CUBE_001 * maxs)
-	table.insert(triangles, mins + CUBE_101 * maxs)
-
-	table.insert(triangles, mins + CUBE_010 * maxs)
-	table.insert(triangles, mins + CUBE_110 * maxs)
-	table.insert(triangles, mins + CUBE_011 * maxs)
-	table.insert(triangles, mins + CUBE_011 * maxs)
-	table.insert(triangles, mins + CUBE_110 * maxs)
-	table.insert(triangles, mins + CUBE_111 * maxs)
-
-	table.insert(triangles, mins + CUBE_000 * maxs)
-	table.insert(triangles, mins + CUBE_100 * maxs)
-	table.insert(triangles, mins + CUBE_010 * maxs)
-	table.insert(triangles, mins + CUBE_010 * maxs)
-	table.insert(triangles, mins + CUBE_100 * maxs)
-	table.insert(triangles, mins + CUBE_110 * maxs)
-	
-	table.insert(triangles, mins + CUBE_001 * maxs)
-	table.insert(triangles, mins + CUBE_011 * maxs)
-	table.insert(triangles, mins + CUBE_101 * maxs)
-	table.insert(triangles, mins + CUBE_101 * maxs)
-	table.insert(triangles, mins + CUBE_011 * maxs)
-	table.insert(triangles, mins + CUBE_111 * maxs)
-
-end
+local propQueueSpeed = 10 --how many entities can be validated per tick?
 
 --Allow collisions for these brush entities
 local movingBrushes = {
@@ -112,19 +56,6 @@ local function addPropMesh(prop)
 		return
 	end
 	
-	--handle players like a box shape
-	--[[
-	if prop:GetClass() == "player" then
-		local mins, maxs = prop:GetHull() / 2
-		local triangles = {}
-		cuboidMesh(triangles, mins, maxs)
-		
-		gwater.AddConvexMesh(triangles, mins - margin, maxs + margin, prop:GetPos(), prop:GetAngles())
-		table.insert(gwater.Meshes, prop)
-		collisionAmount = collisionAmount + 1
-		return
-	end]]
-	
 	local model = prop:GetModel()
 	if not model then return end
 	if not util.GetModelMeshes(model) then return end
@@ -170,22 +101,6 @@ end
 hook.Add("GWaterInitialized", "GWater.Collision", function()
 	if not gwater or not gwater.HasModule then return end
 	local whitelist = gwater.Whitelist
-
-	--add props every second, deprecated
-	--[[
-	timer.Create("GWATER_ADD_PROP", 1, 0, function()
-		whitelist = gwater.Whitelist
-		local props = ents.GetAll()
-		for k, v in ipairs(props) do
-			if not v:IsValid() then continue end
-			if v.GWATER_UPLOADED then continue end
-			if not whitelist[v:GetClass()] then continue end
-			
-			v.GWATER_UPLOADED = true
-			table.insert(propQueue, v)
-		end
-	end)
-	]]--
 	
 	local props = ents.GetAll()
 	for k, v in ipairs(props) do
@@ -238,18 +153,7 @@ hook.Add("GWaterInitialized", "GWater.Collision", function()
 				break
 			end
 			--always update SENTs, their velocity is often broken on the client
-			if v:IsPlayer() then
-				--remove players from table if convar is disabled
-				if gwater.Convars["dophysplayer"]:GetBool() == false then
-					gwater.RemoveMesh(k)
-					collisionAmount = collisionAmount - 1
-					table.remove(gwater.Meshes, k)
-					v.GWATER_UPLOADED = false
-					v.GWaterPhysAttempts = nil
-				end
-				--dont rotate player meshes, acts weirdly
-				gwater.SetMeshPos(v:GetPos(), Angle(0, 0, 0), k)
-			elseif v:IsScripted() or movingBrushes[v:GetClass()] or (v:GetVelocity() ~= Vector()) then 
+			if v:IsScripted() or movingBrushes[v:GetClass()] or (v:GetVelocity() ~= Vector()) then 
 				gwater.SetMeshPos(v:GetPos(), v:GetAngles(), k)
 			end
 		end

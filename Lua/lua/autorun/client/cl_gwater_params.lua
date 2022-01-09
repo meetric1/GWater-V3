@@ -128,6 +128,7 @@ hook.Add("GWaterInitialize", "GWater.Params", function()
 	gwater.Materials = {
 		water = CreateMaterial("GWater_Water", "Refract", {
 	  		["$refractamount"] = 0.01,
+			["$model"] = 1,
 	   		["$refracttint"] = "[0.75 1 2]",
 	        ["$normalmap"] = "shadertest/noise_normal",
 	        ["$dudvmap"] = "dev/water_dudv",
@@ -146,7 +147,5 @@ hook.Add("GWaterInitialize", "GWater.Params", function()
 			Color(0, 200, 255), "GWater",
 			Color(0, 0, 0), "] ",
 			Color(255, 255, 255), "Your GWater is outdated and you will not be able to use it, check the menu for more information!")
-	end
-	
-	print("[GWATER]: Loaded params file!")
+	end 
 end)

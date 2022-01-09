@@ -11,6 +11,4 @@ hook.Add("GWaterInitialize", "GWater.Convars", function()
 	gwater.Convars["maxnetparticles"] = CreateClientConVar("gwater_maxnetparticles", "32768", true, false)
 	
 	gwater.Convars["dophysplayer"] = CreateClientConVar("gwater_physplayer", "1", true, false)
-	
-	print("[GWATER]: Loaded convars file!")
 end)

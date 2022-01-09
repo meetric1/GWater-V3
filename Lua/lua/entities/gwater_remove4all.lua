@@ -1,6 +1,7 @@
 AddCSLuaFile()
-local ENT = scripted_ents.Get("base_point")
+
 ENT.Type 			= "point"
+ENT.Base 			= "base_point"
 ENT.Category		= "GWater"
 ENT.PrintName		= "Remove water for all"
 ENT.Author			= "Mee & AndrewEathan (with help from PotatoOS)"

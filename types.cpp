@@ -57,7 +57,9 @@ void FLEX_API::freeProp(int id) {
 
     NvFlexFreeBuffer(prop->verts);
     if (prop->indices == nullptr) {
-        NvFlexDestroyConvexMesh(flexLibrary, prop->meshID);      //must be convex
+        if (prop->verts != nullptr) {
+            NvFlexDestroyConvexMesh(flexLibrary, prop->meshID);      //must be convex
+        }
     }
     else {
         NvFlexFreeBuffer(prop->indices);

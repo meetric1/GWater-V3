@@ -105,7 +105,7 @@ void FLEX_API::addMeshConvex(GarrysMod::Lua::ILuaBase* LUA) {
     simBuffers->geometry[PropCount].convexMesh.scale[1] = 1.0f;
     simBuffers->geometry[PropCount].convexMesh.scale[2] = 1.0f;
     simBuffers->positions[PropCount] = meshPos;
-    simBuffers->rotations[PropCount] = meshAng;	//dont set rotation to 0 or flex kabooms
+    simBuffers->rotations[PropCount] = meshAng;	//dont set rotation to 0,0,0,0 or flex kabooms
     simBuffers->prevPositions[PropCount] = meshPos;
     simBuffers->prevRotations[PropCount] = meshAng;
     unmapBuffers();
@@ -170,7 +170,36 @@ void FLEX_API::addMeshConcave(GarrysMod::Lua::ILuaBase* LUA) {
     simBuffers->geometry[PropCount].triMesh.scale[1] = 1.0f;
     simBuffers->geometry[PropCount].triMesh.scale[2] = 1.0f;
     simBuffers->positions[PropCount] = meshPos;
-    simBuffers->rotations[PropCount] = meshAng;	//dont set rotation to 0 or flex kabooms
+    simBuffers->rotations[PropCount] = meshAng;	//dont set rotation to 0,0,0,0 or flex kabooms
+    simBuffers->prevPositions[PropCount] = meshPos;
+    simBuffers->prevRotations[PropCount] = meshAng;
+    unmapBuffers();
+
+    props.push_back(p);
+    PropCount++;
+}
+
+//make a capsule mesh collider
+void FLEX_API::addMeshCapsule(GarrysMod::Lua::ILuaBase* LUA) {
+    float4 meshAng = quatFromAngle(LUA->GetAngle(-1));
+    float4 meshPos = float4(LUA->GetVector(-2), 1.f / 50000.f);
+    float meshRadius = LUA->GetNumber(-3);
+    float meshLength = LUA->GetNumber(-4);
+    LUA->Pop(4);    //pops all stuff above, the table is now at index -1
+
+    //add the prop
+    Prop p = Prop();
+    p.pos = meshPos;
+    p.ang = meshAng;
+    p.lastPos = meshPos;
+    p.lastAng = meshAng;
+
+    mapBuffers();
+    simBuffers->flags[PropCount] = NvFlexMakeShapeFlags(eNvFlexShapeCapsule, true);	//index 0 is ALWAYS the world
+    simBuffers->geometry[PropCount].capsule.halfHeight = meshLength;
+    simBuffers->geometry[PropCount].capsule.radius = meshRadius;
+    simBuffers->positions[PropCount] = meshPos;
+    simBuffers->rotations[PropCount] = meshAng;	//dont set rotation to 0,0,0,0 or flex kabooms
     simBuffers->prevPositions[PropCount] = meshPos;
     simBuffers->prevRotations[PropCount] = meshAng;
     unmapBuffers();

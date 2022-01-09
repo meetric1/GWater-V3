@@ -30,6 +30,13 @@ hook.Add("GWaterInitialized", "GWater.Startup", function()
             LocalPlayer():SetDSP(0)
             LocalPlayer():StopLoopingSound(water_sound_id)
         end
+
+        local plys = ents.FindByClass("player")
+        for k, v in ipairs(plys) do
+            if v:IsValid() and v:GetActiveWeapon():IsValid() and v:GetActiveWeapon():GetClass() == "weapon_physcannon" and v:KeyDown(IN_ATTACK2) then
+                gwater.ApplyForceOutwards(v:EyePos() + v:EyeAngles():Forward() * 125 + Vector(0, 0, 10), -15, 100, false);
+            end
+        end
     end)
 
 	local rendercvar = gwater.Convars["enablerendering"]
@@ -45,7 +52,8 @@ hook.Add("GWaterInitialized", "GWater.Startup", function()
         local dir2 = forward - eye:Right()
         local dir3 = forward + eye:Up() * 2
         local dir4 = forward - eye:Up() * 2
-		gwater.RenderedParticles = gwater.RenderParticles(EyePos(), dir1, dir2, dir3, dir4)
+		--gwater.RenderedParticles = gwater.RenderParticles(EyePos(), eye:Up(), eye:Right(), eye:Forward(), fov)
+        gwater.RenderedParticles = gwater.RenderParticles(EyePos(), dir1, dir2, dir3, dir4)
 	end)
 
     hook.Add( "HUDPaint", "GWATER_SCORE", function()
