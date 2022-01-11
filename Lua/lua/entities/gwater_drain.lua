@@ -30,7 +30,7 @@ end
 
 function ENT:Think()
 	if SERVER then return end
-	if not gwater then return end
+	if not gwater or not gwater.HasModule then return end
 
 	local res = gwater.Blackhole(self:GetPos(), 12)
 	gwater.ApplyForceOutwards(self:GetPos(), -5 * self:GetForceMultiplier(), self:GetDrainRange(), false);

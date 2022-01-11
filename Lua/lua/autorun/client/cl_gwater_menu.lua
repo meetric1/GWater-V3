@@ -198,6 +198,17 @@ local function quickControlsTab(tabs)
 	end
 end
 
+--rainbow easter egg tick clock
+local rainbowEasterEgg = false
+local rainbowEasterEggEnabled = false
+
+hook.Add("Tick", "GWater_Rainbow_Color_EE", function()
+	if rainbowEasterEggEnabled and rainbowEasterEgg then
+		local col = HSVToColor(CurTime() * 100 % 360, 1, 1)
+		local vec = Vector(col.r, col.g, col.b) / 127.5
+		gwater.Material:SetVector("$refracttint", vec)
+	end
+end)
 
 local function renderingTab(tabs)
 	local rendering = vgui.Create("DScrollPanel", tabs)
@@ -237,6 +248,15 @@ local function renderingTab(tabs)
 	end
 	
 	local vec = gwater.Material:GetVector("$refracttint") or gwater.Material:GetVector("$color")
+
+	--rainbow checkbox
+	local rainbowcheckbox = vgui.Create("DCheckBoxLabel", rendering)
+	rainbowcheckbox:SetPos(170, 120)
+	rainbowcheckbox:SetText("(Nice)")
+	rainbowcheckbox:SetVisible(false)
+	rainbowcheckbox.OnChange = function(self, value)
+		rainbowEasterEggEnabled = value
+	end
 	
 	local reds = vgui.Create("DNumSlider", rendering)
 	reds:SetPos(170, 10)
@@ -250,6 +270,11 @@ local function renderingTab(tabs)
 		vec.x = value / 255 * 2
 		gwater.Material:SetVector("$refracttint", vec)
 		gwater.Material:SetVector("$color", vec)
+
+		--rainbow color easter egg
+		local vis = (vec * 127.5 == Vector(69, 69, 69))
+		rainbowcheckbox:SetVisible(vis)
+		rainbowEasterEgg = vis
 	end
 	
 	local greens = vgui.Create("DNumSlider", rendering)
@@ -264,6 +289,11 @@ local function renderingTab(tabs)
 		vec.y = value / 255 * 2
 		gwater.Material:SetVector("$refracttint", vec)
 		gwater.Material:SetVector("$color", vec)
+
+		--rainbow color easter egg
+		local vis = (vec *127.5 == Vector(69, 69, 69))
+		rainbowcheckbox:SetVisible(vis)
+		rainbowEasterEgg = vis
 	end
 	
 	local blues = vgui.Create("DNumSlider", rendering)
@@ -278,6 +308,11 @@ local function renderingTab(tabs)
 		vec.z = value / 255 * 2
 		gwater.Material:SetVector("$refracttint", vec)
 		gwater.Material:SetVector("$color", vec)
+
+		--rainbow color easter egg
+		local vis = (vec * 127.5 == Vector(69, 69, 69))
+		rainbowcheckbox:SetVisible(vis)
+		rainbowEasterEgg = vis
 	end
 	
 	local refract = vgui.Create("DNumSlider", rendering)
@@ -290,6 +325,7 @@ local function renderingTab(tabs)
 	
 	refract.OnValueChanged = function(self, value)
 		gwater.Material:SetFloat("$refractamount", value)
+		gwater.Material:SetFloat("$alpha", value * 10)
 	end
 	
 	GWLabel(rendering, "Water Material", "GWaterThin", 10, 120)
@@ -468,6 +504,7 @@ local function gwaterTab(tabs)
 		gwater.SetConfig("maxSpeed", 65536)
 		gwater.SetConfig("maxAcceleration", 128)
 		gwater.SetConfig("sleepThreshold", 2)
+		gwater.SetConfig("surfaceTension", 0.0003)
 		
 		psound("buttons/button15.wav")
 	end

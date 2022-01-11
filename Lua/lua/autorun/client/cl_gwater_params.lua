@@ -64,7 +64,7 @@ hook.Add("GWaterInitialize", "GWater.Params", function()
 			desc = "How strongly particles stick to surfaces they hit, preferably a low value",
 			default = 0,
 			min = 0,
-			max = 5
+			max = 1
 		},
 		cohesion = {
 			prettyname = "Cohesion",
@@ -134,7 +134,10 @@ hook.Add("GWaterInitialize", "GWater.Params", function()
 	        ["$dudvmap"] = "dev/water_dudv",
 		}),
 		simplewater = CreateMaterial("GWater_SimpleWater", "UnlitGeneric", {
-	  		["$basetexture"] = "models/debug/debugwhite",
+	  		["$basetexture"] = "vgui/circle",
+			["$translucent"] =  1,
+			["$alpha"] = 0.5,
+			["$color"] = "[0 0 1]"
 		})
 	}
 

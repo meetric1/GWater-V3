@@ -62,8 +62,11 @@ hook.Add("GWaterInitialize", "GWater.Stubs", function()
 	        ["$dudvmap"] = "dev/water_dudv",
 		}),
 		simplewater = CreateMaterial("GWater_SimpleWater", "UnlitGeneric", {
-	  		["$basetexture"] = "models/debug/debugwhite",
-		})
+			["$basetexture"] = "vgui/circle",
+		  	["$translucent"] =  1,
+		  	["$alpha"] = 0.5,
+		  	["$color"] = "[0 0 1]"
+	  })
 	}
 	
 	print("[GWATER]: Loaded stub functions!")
