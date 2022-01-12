@@ -346,7 +346,7 @@ FLEX_API::FLEX_API() {
     geoPrevQuatBuffer = NvFlexAllocBuffer(flexLibrary, MAX_COLLIDERS, sizeof(float4), eNvFlexBufferHost);
 
     //spring buffers
-    indicesBuffer = NvFlexAllocBuffer(flexLibrary, flexSolverDesc.maxParticles, sizeof(int), eNvFlexBufferHost);
+    indicesBuffer = NvFlexAllocBuffer(flexLibrary, flexSolverDesc.maxParticles * 2, sizeof(int), eNvFlexBufferHost);
     lengthsBuffer = NvFlexAllocBuffer(flexLibrary, flexSolverDesc.maxParticles, sizeof(float), eNvFlexBufferHost);
     coefficientsBuffer = NvFlexAllocBuffer(flexLibrary, flexSolverDesc.maxParticles, sizeof(float), eNvFlexBufferHost);
 

@@ -13,10 +13,10 @@ float4* particleBufferHost;
 
 float simTimescale = 1;
 int ParticleCount = 0;
+int SpringCount = 0;
 int PropCount = 0;
 bool SimValid = true;
 int RenderDistance = pow(5000, 2);
-//int SimulationDistance = pow(15000, 2);
 
 //overloaded printlua func
 void LUA_Print(std::string text)
@@ -36,7 +36,6 @@ void LUA_Print(char* text)
 	GlobalLUA->Call(1, 0);
 	GlobalLUA->Pop();
 }
-
 
 ////////// LUA FUNCTIONS /////////////
 //renders particles
@@ -234,6 +233,23 @@ LUA_FUNCTION(SpawnParticle) {
 
 	//remove vel and pos from stack
 	LUA->Pop(2);	
+
+	return 0;
+}
+
+LUA_FUNCTION(SpawnCloth) {
+	//check to see if they are both vectors
+	LUA->CheckType(1, Type::Vector); // pos
+	bufferMutex->lock();
+	if (!SimValid) {
+		bufferMutex->unlock();
+		return 0;
+	}
+	
+	FLEX_Simulation->addCloth(LUA->GetVector(1));
+
+	bufferMutex->unlock();
+	LUA->Pop();
 
 	return 0;
 }
@@ -652,6 +668,7 @@ void PopulateFunctions(ILuaBase* LUA) {
 	ADD_FUNC(SpawnCube, "SpawnCube");
 	ADD_FUNC(SpawnSphere, "SpawnSphere");
 	ADD_FUNC(SpawnCubeExact, "SpawnCubeExact");
+	ADD_FUNC(SpawnCloth, "SpawnCloth");
 	ADD_FUNC(CleanLostParticles, "CleanLostParticles");
 	ADD_FUNC(CleanLoneParticles, "CleanLoneParticles");
 	ADD_FUNC(SetMaxParticles, "SetMaxParticles");

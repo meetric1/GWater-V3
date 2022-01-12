@@ -19,6 +19,7 @@ extern float4* particleBufferHost;
 
 extern float simTimescale;
 extern int ParticleCount;
+extern int SpringCount;
 extern int PropCount;
 extern bool SimValid;
 extern int RenderDistance;

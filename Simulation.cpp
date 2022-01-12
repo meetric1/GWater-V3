@@ -81,6 +81,7 @@ void FLEX_API::flexSolveThread() {
 		NvFlexSetVelocities(flexSolver, velocityBuffer, NULL);
 		NvFlexSetPhases(flexSolver, phaseBuffer, NULL);
 		NvFlexSetActive(flexSolver, activeBuffer, NULL);
+		NvFlexSetSprings(flexSolver, indicesBuffer, lengthsBuffer, coefficientsBuffer, SpringCount);
 		NvFlexSetActiveCount(flexSolver, ParticleCount);
 		NvFlexSetShapes(flexSolver, geometryBuffer,	geoPosBuffer, geoQuatBuffer, geoPrevPosBuffer, geoPrevQuatBuffer, geoFlagsBuffer, PropCount);
 		NvFlexSetParams(flexSolver, flexParams);
@@ -98,6 +99,7 @@ void FLEX_API::flexSolveThread() {
 		NvFlexGetVelocities(flexSolver, velocityBuffer, NULL);
 		NvFlexGetPhases(flexSolver, phaseBuffer, NULL);
 		NvFlexGetActive(flexSolver, activeBuffer, NULL);
+		NvFlexGetSprings(flexSolver, indicesBuffer, lengthsBuffer, coefficientsBuffer, SpringCount);
 
 		//dont forget to unlock our buffer
 		bufferMutex->unlock();
