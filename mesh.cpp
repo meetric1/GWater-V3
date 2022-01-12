@@ -213,6 +213,108 @@ void FLEX_API::updateMeshPos(Vector pos, QAngle ang, int id) {
     props[id].lastPos = float4(pos, 1.f / 50000.f);
     props[id].lastAng = quatFromAngle(ang);
 }
+/*
+void FLEX_API::CreateSpring(int i, int j, float stiffness, float give = 0.0f)
+{
+    simBuffers->indices[ParticleCount + 1] = i;
+    simBuffers->indices[ParticleCount + 1] = i;
+    g_buffers->indices.push_back(j);
+    g_buffers->lengths.push_back((1.0f + give) * Length(Vec3(g_buffers->positions[i]) - Vec3(g_buffers->positions[j])));
+    g_buffers->coefficients.push_back(stiffness);
+}
+
+
+//https://github.com/NVIDIAGameWorks/FleX/blob/b1ea0f87b72582649c935d53fd8531b1e7335160/demo/helpers.h#L830
+inline int GridIndex(int x, int y, int dx) {return y * dx + x;}
+
+void FLEX_API::CreateSpringGrid(float3 lower, int dx, int dy, int dz, float radius, int phase, float stretchStiffness, float bendStiffness, float shearStiffness, float3 velocity, float invMass)
+{
+    int baseIndex = ParticleCount;
+
+    for (int z = 0; z < dz; ++z)
+    {
+        for (int y = 0; y < dy; ++y)
+        {
+            for (int x = 0; x < dx; ++x)
+            {
+                float3 position = lower + float3(radius) * float3(float(x), float(z), float(y));
+
+                ParticleCount++;
+                simBuffers->positions[ParticleCount] = float4(position.x, position.y, position.z, invMass);
+                simBuffers->velocities[ParticleCount] = velocity;
+                simBuffers->phases[ParticleCount] = phase;
+
+                if (x > 0 && y > 0)
+                {
+                    g_buffers->triangles.push_back(baseIndex + GridIndex(x - 1, y - 1, dx));
+                    g_buffers->triangles.push_back(baseIndex + GridIndex(x, y - 1, dx));
+                    g_buffers->triangles.push_back(baseIndex + GridIndex(x, y, dx));
+
+                    g_buffers->triangles.push_back(baseIndex + GridIndex(x - 1, y - 1, dx));
+                    g_buffers->triangles.push_back(baseIndex + GridIndex(x, y, dx));
+                    g_buffers->triangles.push_back(baseIndex + GridIndex(x - 1, y, dx));
+
+                    //g_buffers->triangleNormals.push_back(float3(0.0f, 1.0f, 0.0f));   //worry about this later
+                    //g_buffers->triangleNormals.push_back(float3(0.0f, 1.0f, 0.0f));
+                }
+            }
+        }
+    }
+
+    // horizontal
+    for (int y = 0; y < dy; ++y)
+    {
+        for (int x = 0; x < dx; ++x)
+        {
+            int index0 = y * dx + x;
+
+            if (x > 0)
+            {
+                int index1 = y * dx + x - 1;
+                CreateSpring(baseIndex + index0, baseIndex + index1, stretchStiffness);
+            }
+
+            if (x > 1)
+            {
+                int index2 = y * dx + x - 2;
+                CreateSpring(baseIndex + index0, baseIndex + index2, bendStiffness);
+            }
+
+            if (y > 0 && x < dx - 1)
+            {
+                int indexDiag = (y - 1) * dx + x + 1;
+                CreateSpring(baseIndex + index0, baseIndex + indexDiag, shearStiffness);
+            }
+
+            if (y > 0 && x > 0)
+            {
+                int indexDiag = (y - 1) * dx + x - 1;
+                CreateSpring(baseIndex + index0, baseIndex + indexDiag, shearStiffness);
+            }
+        }
+    }
+
+    // vertical
+    for (int x = 0; x < dx; ++x)
+    {
+        for (int y = 0; y < dy; ++y)
+        {
+            int index0 = y * dx + x;
+
+            if (y > 0)
+            {
+                int index1 = (y - 1) * dx + x;
+                CreateSpring(baseIndex + index0, baseIndex + index1, stretchStiffness);
+            }
+
+            if (y > 1)
+            {
+                int index2 = (y - 2) * dx + x;
+                CreateSpring(baseIndex + index0, baseIndex + index2, bendStiffness);
+            }
+        }
+    }
+}*/
 
 /*void flexAPI::addCloth(GarrysMod::Lua::ILuaBase* LUA, size_t tableLen) {
     buffer.assign()

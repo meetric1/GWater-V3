@@ -9,7 +9,7 @@ if SERVER then
 	util.AddNetworkString("GWATER_REMOVE")
 	util.AddNetworkString("GWATER_NETWORKMAP")
 
-	-- thanks kodya, very cool
+	-- thanks kodya, very cool, speed will be used later in stuff like speed gels
 	-- sadly easy to exploit, but still pretty awesome 
 	net.Receive("GWATER_SWIMMING", function(len, ply)
 		if not ply then return end
@@ -17,12 +17,12 @@ if SERVER then
 		local spd = net.ReadFloat()
 		
 		ply.GWATER_SWIMMING = bool
-		ply.GWATER_SPEED = spd
+		ply.GWATER_SPEED = math.Clamp(spd, 0, 10)
 		
+		--tell clients to make the player look like they are swimming
 		net.Start("GWATER_SWIMMING")
 			net.WriteEntity(ply)
 			net.WriteBool(bool)
-			net.WriteFloat(spd)
 		net.Broadcast()
 	end)
 	
@@ -89,9 +89,7 @@ else
 	net.Receive("GWATER_SWIMMING", function()
 		local ply = net.ReadEntity()
 		local swim = net.ReadBool()
-		local spd = net.ReadFloat()
 		ply.GWATER_SWIMMING = swim
-		ply.GWATER_SPEED = spd
 	end)
 end
 
@@ -122,7 +120,7 @@ hook.Add("Move", "GWater.Swimming", function(ply, move)
     acel = aceldir * acelspeed * 2
 
 	if bit.band(move:GetButtons(), IN_JUMP) ~= 0 then
-        acel.z = acel.z + ply:GetMaxSpeed()
+        acel.z = acel.z + ply:GetMaxSpeed() * ply.GWATER_SPEED
     end
 
     vel = vel + acel * FrameTime()

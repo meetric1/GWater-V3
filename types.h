@@ -142,7 +142,9 @@ public:
     void applyForce(float3 pos, float3 vel, float radius, bool linear);
     void applyForceOutwards(float3 pos, float strength, float radius, bool linear);
 
-    //void addCloth(GarrysMod::Lua::ILuaBase* LUA, size_t tableLen);
+    // springs (flex provided functions)
+    void CreateSpringGrid(float3 lower, int dx, int dy, int dz, float radius, int phase, float stretchStiffness, float bendStiffness, float shearStiffness, float3 velocity, float invMass);
+    void CreateSpring(int i, int j, float stiffness, float give = 0.0f);
 
     void addForceField(Vector pos, float radius, float strength, bool linear, int type);
     void deleteForceField(int ID);
