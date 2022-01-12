@@ -17,8 +17,8 @@ void FLEX_API::initParams() {
 
 	flexParams->radius = 0.f;
 	flexParams->viscosity = 0.0f;
-	flexParams->dynamicFriction = 0.5f;	//5/r
-	flexParams->staticFriction = 0.5f;
+	flexParams->dynamicFriction = 0.25f;	//5/r
+	flexParams->staticFriction = 0.25f;
 	flexParams->particleFriction = 0.01f; // scale friction between particles by default
 	flexParams->freeSurfaceDrag = 0.0f;
 	flexParams->drag = 0.0f;
