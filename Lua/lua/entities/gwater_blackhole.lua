@@ -1,6 +1,7 @@
 AddCSLuaFile()
 
 ENT.Type 			= "anim"
+ENT.Base 			= "base_gmodentity"
 ENT.Category		= "GWater"
 ENT.PrintName		= "Black Hole"
 ENT.Author			= "Mee & AndrewEathan (with help from PotatoOS)"

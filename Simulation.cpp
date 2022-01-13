@@ -99,7 +99,6 @@ void FLEX_API::flexSolveThread() {
 		NvFlexGetVelocities(flexSolver, velocityBuffer, NULL);
 		NvFlexGetPhases(flexSolver, phaseBuffer, NULL);
 		NvFlexGetActive(flexSolver, activeBuffer, NULL);
-		NvFlexGetSprings(flexSolver, indicesBuffer, lengthsBuffer, coefficientsBuffer, SpringCount);
 
 		//dont forget to unlock our buffer
 		bufferMutex->unlock();

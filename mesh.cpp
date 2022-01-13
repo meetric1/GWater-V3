@@ -218,53 +218,50 @@ void FLEX_API::updateMeshPos(Vector pos, QAngle ang, int id) {
     props[id].lastAng = quatFromAngle(ang);
 }
 
+
+//https://github.com/NVIDIAGameWorks/FleX/blob/b1ea0f87b72582649c935d53fd8531b1e7335160/demo/helpers.h
 void FLEX_API::CreateSpring(int i, int j, float stiffness, float give) {   
     simBuffers->indices[SpringCount * 2 - 2] = i;
     simBuffers->indices[SpringCount * 2 - 1] = j;
     simBuffers->lengths[SpringCount]= (1.0f + give) * length(float3(simBuffers->particles[i]) - float3(simBuffers->particles[j]));
     simBuffers->coefficients[SpringCount] = stiffness;
-    LUA_Print(std::to_string(i));
     SpringCount++;
 }
 
-
-//https://github.com/NVIDIAGameWorks/FleX/blob/b1ea0f87b72582649c935d53fd8531b1e7335160/demo/helpers.h#L830
 inline int GridIndex(int x, int y, int dx) {return y * dx + x;}
 
-void FLEX_API::CreateSpringGrid(float3 lower, int dx, int dy, int dz, float radius, int phase, float stretchStiffness, float bendStiffness, float shearStiffness, float3 velocity, float invMass) {
+void FLEX_API::CreateSpringGrid(float3 lower, int dx, int dy, int dz, float radius, int phase, float stiffness, float3 velocity, float invMass) {
     int baseIndex = ParticleCount;
 
-    for (int z = 0; z < dz; ++z)
+    for (int y = 0; y < dy; ++y)
     {
-        for (int y = 0; y < dy; ++y)
+        for (int x = 0; x < dx; ++x)
         {
-            for (int x = 0; x < dx; ++x)
-            {
-                float3 positionfloat3 = lower + float3(radius) * float3(float(x), float(y), float(z));
-                float4 positionfloat4 = float4(positionfloat3.x, positionfloat3.y, positionfloat3.z, 1.f);
+            float3 positionfloat3 = lower + float3(radius) * float3(float(x), float(y), 0);
+            float4 positionfloat4 = float4(positionfloat3.x, positionfloat3.y, positionfloat3.z, invMass);
         
-                simBuffers->particles[ParticleCount] = positionfloat4;
-                simBuffers->velocities[ParticleCount] = velocity;
-                simBuffers->phases[ParticleCount] = phase;
-                simBuffers->activeIndices[ParticleCount] = ParticleCount;
-                ParticleCount++;
+            simBuffers->particles[ParticleCount] = positionfloat4;
+            simBuffers->velocities[ParticleCount] = velocity;
+            simBuffers->phases[ParticleCount] = phase;
+            simBuffers->activeIndices[ParticleCount] = ParticleCount;
+            ParticleCount++;
 
-                if (x > 0 && y > 0)
-                {
-                    //g_buffers->triangles.push_back(baseIndex + GridIndex(x - 1, y - 1, dx));
-                    //g_buffers->triangles.push_back(baseIndex + GridIndex(x, y - 1, dx));
-                    //g_buffers->triangles.push_back(baseIndex + GridIndex(x, y, dx));
+            if (x > 0 && y > 0)
+            {
+                //g_buffers->triangles.push_back(baseIndex + GridIndex(x - 1, y - 1, dx));
+                //g_buffers->triangles.push_back(baseIndex + GridIndex(x, y - 1, dx));
+                //g_buffers->triangles.push_back(baseIndex + GridIndex(x, y, dx));
 
-                    //g_buffers->triangles.push_back(baseIndex + GridIndex(x - 1, y - 1, dx));
-                    //g_buffers->triangles.push_back(baseIndex + GridIndex(x, y, dx));
-                    //g_buffers->triangles.push_back(baseIndex + GridIndex(x - 1, y, dx));
+                //g_buffers->triangles.push_back(baseIndex + GridIndex(x - 1, y - 1, dx));
+                //g_buffers->triangles.push_back(baseIndex + GridIndex(x, y, dx));
+                //g_buffers->triangles.push_back(baseIndex + GridIndex(x - 1, y, dx));
 
-                    //g_buffers->triangleNormals.push_back(float3(0.0f, 1.0f, 0.0f));   //worry about this later
-                    //g_buffers->triangleNormals.push_back(float3(0.0f, 1.0f, 0.0f));
-                }
+                //g_buffers->triangleNormals.push_back(float3(0.0f, 1.0f, 0.0f));   //worry about this later
+                //g_buffers->triangleNormals.push_back(float3(0.0f, 1.0f, 0.0f));
             }
         }
     }
+
 
     // horizontal
     for (int y = 0; y < dy; ++y)
@@ -278,23 +275,23 @@ void FLEX_API::CreateSpringGrid(float3 lower, int dx, int dy, int dz, float radi
                 int index1 = y * dx + x - 1;
                 CreateSpring(baseIndex + index0, baseIndex + index1, stretchStiffness);
             }
-
+            
             if (x > 1)
             {
                 int index2 = y * dx + x - 2;
                 CreateSpring(baseIndex + index0, baseIndex + index2, bendStiffness);
             }*/
-
-            if (y > 0 && x < dx - 1)
+            
+            if (y > 0)
             {
-                int indexDiag = (y - 1) * dx + x + 1;
-                CreateSpring(baseIndex + index0, baseIndex + indexDiag, shearStiffness);
+                int indexDiag = (y - 1) * dx + x;
+                CreateSpring(baseIndex + index0, baseIndex + indexDiag, stiffness);
             }
 
-            if (y > 0 && x > 0)
+            if (x > 0)
             {
-                int indexDiag = (y - 1) * dx + x - 1;
-                CreateSpring(baseIndex + index0, baseIndex + indexDiag, shearStiffness);
+                int indexDiag = y * dx + x - 1;
+                CreateSpring(baseIndex + index0, baseIndex + indexDiag, stiffness);
             }
         }
     }
@@ -322,20 +319,14 @@ void FLEX_API::CreateSpringGrid(float3 lower, int dx, int dy, int dz, float radi
     }*/
 }
 
-void FLEX_API::addCloth(Vector pos) {
-    float stretchStiffness = 1.f;
-    float bendStiffness = 0.5f;
-    float shearStiffness = 0.5f;
-
-    float radius = 10.f;
-
-    int dimx = 100;
-    int dimz = 100;
+void FLEX_API::addCloth(Vector pos, int width, float radius, float stiffness) {
+    int dimx = width;
+    int dimz = width;
     int phase = NvFlexMakePhase(0, eNvFlexPhaseSelfCollide);
 
     float spacing = radius;
 
     mapBuffers();
-    CreateSpringGrid(pos, dimx, dimz, 1, spacing, phase, stretchStiffness, bendStiffness, shearStiffness, float3(0.0f), 1.0f);
+    CreateSpringGrid(float3(pos) - float3(dimx, dimz, 0) * spacing / 2, dimx, dimz, 1, spacing, phase, stiffness, float3(0.0f), 1.0f);
     unmapBuffers();
 }

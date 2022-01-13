@@ -123,7 +123,7 @@ public:
     void addMeshConcave(GarrysMod::Lua::ILuaBase* LUA);
     void addMeshConvex(GarrysMod::Lua::ILuaBase* LUA);
     void addMeshCapsule(GarrysMod::Lua::ILuaBase* LUA);
-    void addCloth(Vector pos);
+    void addCloth(Vector pos, int width, float radius, float stiffness);
     void updateMeshPos(Vector pos, QAngle ang, int id);
     void freeProp(int ID);
 
@@ -144,7 +144,7 @@ public:
     void applyForceOutwards(float3 pos, float strength, float radius, bool linear);
 
     // springs (flex provided functions)
-    void CreateSpringGrid(float3 lower, int dx, int dy, int dz, float radius, int phase, float stretchStiffness, float bendStiffness, float shearStiffness, float3 velocity, float invMass);
+    void CreateSpringGrid(float3 lower, int dx, int dy, int dz, float radius, int phase, float stretchStiffness, float3 velocity, float invMass);
     void CreateSpring(int i, int j, float stiffness, float give = 0.0f);
 
     void addForceField(Vector pos, float radius, float strength, bool linear, int type);

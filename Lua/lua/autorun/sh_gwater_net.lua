@@ -28,14 +28,12 @@ if SERVER then
 	
 	net.Receive("GWATER_REMOVE", function(len, ply)
 		local pos = net.ReadVector()
-		local r = net.ReadInt(16)
+		local r = math.Clamp(net.ReadInt(16), 1, 2500)
 		
-		if ply:IsAdmin() then
-			net.Start("GWATER_REMOVE")
-				net.WriteVector(pos)
-				net.WriteInt(r, 16)
-			net.Broadcast()
-		end
+		net.Start("GWATER_REMOVE")
+			net.WriteVector(pos)
+			net.WriteInt(r, 16)
+		net.Broadcast()
 	end)
 else
 	hook.Add("GWaterInitialized", "GWater.Networking", function()
@@ -105,7 +103,7 @@ hook.Add("CalcMainActivity", "GWater.Swimming", function(ply)
 end)
 
 hook.Add("Move", "GWater.Swimming", function(ply, move)
-	if not ply.GWATER_SWIMMING then return end
+	if not ply.GWATER_SWIMMING or CLIENT then return end
 
     local vel = move:GetVelocity()
     local ang = move:GetMoveAngles()

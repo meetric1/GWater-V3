@@ -240,13 +240,16 @@ LUA_FUNCTION(SpawnParticle) {
 LUA_FUNCTION(SpawnCloth) {
 	//check to see if they are both vectors
 	LUA->CheckType(1, Type::Vector); // pos
+	LUA->CheckType(2, Type::Number); // width
+	LUA->CheckType(3, Type::Number); // how close apart particles are
+	LUA->CheckType(4, Type::Number); // stiffness
 	bufferMutex->lock();
 	if (!SimValid) {
 		bufferMutex->unlock();
 		return 0;
 	}
 	
-	FLEX_Simulation->addCloth(LUA->GetVector(1));
+	FLEX_Simulation->addCloth(LUA->GetVector(1), LUA->GetNumber(2), LUA->GetNumber(3), LUA->GetNumber(4));
 
 	bufferMutex->unlock();
 	LUA->Pop();

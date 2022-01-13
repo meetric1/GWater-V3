@@ -10,8 +10,9 @@ local propQueueSpeed = 3 --how many entities can be validated per tick?
 local function addPropMesh(prop)
 	if not prop or not prop:IsValid() then return end
 
-	--handle sents 
+	--[[handle sents 
 	if prop:GetPhysicsObject():IsValid() then
+		print("bla")
 		for k, convex in pairs(prop:GetPhysicsObject():GetMeshConvexes()) do 
 			local finalMesh = {}
 			for k, tri in pairs(convex) do
@@ -21,7 +22,7 @@ local function addPropMesh(prop)
 			table.insert(gwater.Meshes, prop)
 		end
 		return
-	end
+	end]]
 	
 	local model = prop:GetModel()
 	if not model then return end

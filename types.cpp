@@ -106,7 +106,7 @@ int FLEX_API::removeInRadius(float3 pos, float radius) {
     int numParticlesRemoved = 0;
     int num = ParticleCount;
     for (int i = 0; i < num; i++) {
-        if (DistanceSquared(simBuffers->particles[i], pos) >= radius) {
+        if (DistanceSquared(simBuffers->particles[i], pos) >= radius || simBuffers->particles[i].w != 0.5) {
             simBuffers->particles[n] = simBuffers->particles[i];
             simBuffers->velocities[n] = simBuffers->velocities[i];
             simBuffers->phases[n] = simBuffers->phases[i];
@@ -311,6 +311,7 @@ void FLEX_API::deleteForceField(int ID) {
 void FLEX_API::removeAllParticles() {
     particleQueue.clear();
     ParticleCount = 0;
+    SpringCount = 0;
 }
 
 //flex startup
@@ -346,9 +347,9 @@ FLEX_API::FLEX_API() {
     geoPrevQuatBuffer = NvFlexAllocBuffer(flexLibrary, MAX_COLLIDERS, sizeof(float4), eNvFlexBufferHost);
 
     //spring buffers
-    indicesBuffer = NvFlexAllocBuffer(flexLibrary, flexSolverDesc.maxParticles * 2, sizeof(int), eNvFlexBufferHost);
-    lengthsBuffer = NvFlexAllocBuffer(flexLibrary, flexSolverDesc.maxParticles, sizeof(float), eNvFlexBufferHost);
-    coefficientsBuffer = NvFlexAllocBuffer(flexLibrary, flexSolverDesc.maxParticles, sizeof(float), eNvFlexBufferHost);
+    indicesBuffer = NvFlexAllocBuffer(flexLibrary, flexSolverDesc.maxParticles * 4, sizeof(int), eNvFlexBufferHost);
+    lengthsBuffer = NvFlexAllocBuffer(flexLibrary, flexSolverDesc.maxParticles * 2, sizeof(float), eNvFlexBufferHost);
+    coefficientsBuffer = NvFlexAllocBuffer(flexLibrary, flexSolverDesc.maxParticles * 2, sizeof(float), eNvFlexBufferHost);
 
     // Host buffer
     particleBufferHost = static_cast<float4*>(malloc(sizeof(float4) * flexSolverDesc.maxParticles));
