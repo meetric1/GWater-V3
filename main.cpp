@@ -248,8 +248,13 @@ LUA_FUNCTION(SpawnCloth) {
 		bufferMutex->unlock();
 		return 0;
 	}
+
+	float num = 1.f;
+	if (LUA->GetNumber(5) != Type::Nil) {
+		num = LUA->GetNumber(5);
+	}
 	
-	FLEX_Simulation->addCloth(LUA->GetVector(1), LUA->GetNumber(2), LUA->GetNumber(3), LUA->GetNumber(4));
+	FLEX_Simulation->addCloth(LUA->GetVector(1), LUA->GetNumber(2), LUA->GetNumber(3), LUA->GetNumber(4), num);
 
 	bufferMutex->unlock();
 	LUA->Pop();

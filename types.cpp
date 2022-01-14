@@ -310,6 +310,12 @@ void FLEX_API::deleteForceField(int ID) {
 
 void FLEX_API::removeAllParticles() {
     particleQueue.clear();
+    mapBuffers();
+    memset(simBuffers->particles, NULL, sizeof(float4) * MAX_PARTICLES);
+    memset(simBuffers->indices, NULL, sizeof(int) * MAX_PARTICLES);
+    memset(simBuffers->lengths, NULL, sizeof(float) * MAX_PARTICLES);
+    memset(simBuffers->coefficients, NULL, sizeof(float) * MAX_PARTICLES);
+    unmapBuffers();
     ParticleCount = 0;
     SpringCount = 0;
 }
@@ -347,9 +353,9 @@ FLEX_API::FLEX_API() {
     geoPrevQuatBuffer = NvFlexAllocBuffer(flexLibrary, MAX_COLLIDERS, sizeof(float4), eNvFlexBufferHost);
 
     //spring buffers
-    indicesBuffer = NvFlexAllocBuffer(flexLibrary, flexSolverDesc.maxParticles * 4, sizeof(int), eNvFlexBufferHost);
-    lengthsBuffer = NvFlexAllocBuffer(flexLibrary, flexSolverDesc.maxParticles * 2, sizeof(float), eNvFlexBufferHost);
-    coefficientsBuffer = NvFlexAllocBuffer(flexLibrary, flexSolverDesc.maxParticles * 2, sizeof(float), eNvFlexBufferHost);
+    indicesBuffer = NvFlexAllocBuffer(flexLibrary, MAX_PARTICLES * 4, sizeof(int), eNvFlexBufferHost);
+    lengthsBuffer = NvFlexAllocBuffer(flexLibrary, MAX_PARTICLES * 2, sizeof(float), eNvFlexBufferHost);
+    coefficientsBuffer = NvFlexAllocBuffer(flexLibrary, MAX_PARTICLES * 2, sizeof(float), eNvFlexBufferHost);
 
     // Host buffer
     particleBufferHost = static_cast<float4*>(malloc(sizeof(float4) * flexSolverDesc.maxParticles));

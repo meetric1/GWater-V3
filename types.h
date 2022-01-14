@@ -123,7 +123,7 @@ public:
     void addMeshConcave(GarrysMod::Lua::ILuaBase* LUA);
     void addMeshConvex(GarrysMod::Lua::ILuaBase* LUA);
     void addMeshCapsule(GarrysMod::Lua::ILuaBase* LUA);
-    void addCloth(Vector pos, int width, float radius, float stiffness);
+    void addCloth(Vector pos, int width, float radius, float stiffness, float mass);
     void updateMeshPos(Vector pos, QAngle ang, int id);
     void freeProp(int ID);
 
