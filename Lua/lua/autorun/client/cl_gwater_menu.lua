@@ -320,12 +320,15 @@ local function renderingTab(tabs)
 	refract:SetSize(220, 20)
 	refract:SetText("Refract Amount")
 	refract:SetMinMax(0, 0.1)
-	refract:SetValue(0.01)
+	refract:SetValue(gwater.Material:GetFloat("$refractamount") or (gwater.Material:GetFloat("$alpha") / 10) or 0.01)
 	refract:SetDecimals(5)
 	
 	refract.OnValueChanged = function(self, value)
-		gwater.Material:SetFloat("$refractamount", value)
-		gwater.Material:SetFloat("$alpha", value * 10)
+		if gwater.Material != gwater.Materials["simplewater"] then
+			gwater.Material:SetFloat("$refractamount", value)
+		else
+			gwater.Material:SetFloat("$alpha", value * 10)
+		end
 	end
 	
 	GWLabel(rendering, "Water Material", "GWaterThin", 10, 120)
@@ -333,7 +336,7 @@ local function renderingTab(tabs)
 	local pickmat = vgui.Create("DComboBox", rendering)
 	pickmat:SetPos(10, 150)
 	pickmat:SetSize(150, 20)
-	pickmat:SetValue("water")
+	pickmat:SetValue("watermat")
 	pickmat:SetTextColor(Color(200, 200, 200))
 	
 	for k,v in pairs(gwater.Materials) do
@@ -348,6 +351,7 @@ local function renderingTab(tabs)
 		reds:SetValue(vec.x * 255 / 2)
 		greens:SetValue(vec.y * 255 / 2)
 		blues:SetValue(vec.z * 255 / 2)
+		refract:SetValue(gwater.Material:GetFloat("$refractamount") or (gwater.Material:GetFloat("$alpha") / 10))
 	end
 	
 	local solve = vgui.Create("DCheckBoxLabel", rendering)
@@ -594,18 +598,21 @@ end
 
 
 concommand.Add("gwater_menu", function()
-	if not gwater then gwater = {} end
+	if not gwater or not gwater.GetLuaVersion then 
+		print("PANIC! UNABLE TO OPEN GWATER MENU?? HAS THE WORLD BEEN SENT TO CLIENT YET?")
+		return 
+	end
 	if gwater.Menu then return end
 	
 	local menu = vgui.Create("DFrame")
-	menu:SetTitle("GWater Menu  |  Running addon v" .. gwater.GetLuaVersion()
+	menu:SetTitle("GWater Menu  |  Running addon v" .. (gwater.GetLuaVersion() or "")
 		.. (gwater.HasModule and " and module v" .. gwater.GetModuleVersion() or ""))
 	menu:SetSize(640, 360)
 	menu:Center()
 	menu:MakePopup()
 	menu.Paint = function(self, w, h)
-		if gwater and gwater.Materials["water"] then
-			surface.SetMaterial(gwater.Materials["water"])
+		if gwater and gwater.Materials["expensivewater"] then
+			surface.SetMaterial(gwater.Materials["expensivewater"])
 			surface.SetDrawColor(255, 255, 255, 50)
 			surface.DrawTexturedRect(0, 0, w, h)
 		end

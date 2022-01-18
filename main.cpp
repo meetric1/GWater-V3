@@ -49,43 +49,51 @@ LUA_FUNCTION(RenderParticles) {
 	float3 directionArray[4];
 	for (int i = 0; i < 4; i++)
 		directionArray[i] = LUA->GetVector(-i - 1);
-	float3 pos = float3(LUA->GetVector(-5));
+
+	float3 eyePos = LUA->GetVector(-5);
 
 	LUA->Pop(5);
 	LUA->PushSpecial(SPECIAL_GLOB);
-	LUA->GetField(-1, "render");
 
 	float particleRadius = FLEX_Simulation->radius;
 	int numParticlesRendered = 0;
-	//loop thru all particles, any that we cannot see are not rendered
+
+	float4 particlePos;	// Reassign these, dont redeclare them
+	float3 particleMinusPos;
+	Vector gmodPos;
+
+	//we need to optimize the crap out of this because it can run 65 thousand times per frame!
 	for (int i = 0; i < ParticleCount; i++) {
-		float3 thisPos = float3(particleBufferHost[i]);
+		particlePos = particleBufferHost[i];
 
-		bool skip = false;
-		for (int i = 0; i < 4; i++) {
-			if (Dot(thisPos - pos, directionArray[i]) < 0) {
-				skip = true;
-			}
-		}
+		if (particlePos.w != 0.5) continue;
 
-		if (skip || DistanceSquared(thisPos, pos) > RenderDistance) continue;
+		particleMinusPos = float3(particlePos) - eyePos;
 
-		Vector gmodPos;
-		gmodPos.x = thisPos.x;
-		gmodPos.y = thisPos.y;
-		gmodPos.z = thisPos.z;
+		if (
+			Dot(particleMinusPos, directionArray[0]) < 0 ||
+			Dot(particleMinusPos, directionArray[1]) < 0 ||
+			Dot(particleMinusPos, directionArray[2]) < 0 ||
+			Dot(particleMinusPos, directionArray[3]) < 0
+		) continue;
+
+		if (DistanceSquared(particlePos, eyePos) > RenderDistance) continue;
+
+		//reassign, do not redeclare
+		gmodPos.x = particlePos.x;
+		gmodPos.y = particlePos.y;
+		gmodPos.z = particlePos.z;
 
 		//draws the sprite
-		LUA->GetField(-1, "DrawSprite");
+		LUA->GetField(-1, "GWater_DrawSprite");
 		LUA->PushVector(gmodPos);
 		LUA->PushNumber(particleRadius);
-		LUA->PushNumber(particleRadius);
-		LUA->Call(3, 0);	//pops literally everything above except render and _G
+		LUA->Call(2, 0);	//pops literally everything above except _G
 
 		numParticlesRendered++;
 	}
 
-	LUA->Pop(2); //pop _G and render
+	LUA->Pop(1); //pop _G from stack
 	LUA->PushNumber(numParticlesRendered);
 
 	return 1;
@@ -121,22 +129,47 @@ LUA_FUNCTION(CleanLoneParticles) {
 	return 1;
 }
 
-//xyz data triangle test
 LUA_FUNCTION(GetData) {
 	LUA->CreateTable();
 
 	//loop thru all particles & add to table (on stack)
+	float4 thisPos;
+	Vector gmodPos;
 	for (int i = 0; i < ParticleCount; i++) {
-
-		float4 thisPos = particleBufferHost[i];
-
-		Vector gmodPos;
+		thisPos = particleBufferHost[i];
 		gmodPos.x = thisPos.x;
 		gmodPos.y = thisPos.y;
 		gmodPos.z = thisPos.z;
 
 		LUA->PushNumber((double)i + 1);
 		LUA->PushVector(gmodPos);
+		LUA->SetTable(-3);
+	}
+
+	return 1;
+}
+
+LUA_FUNCTION(GetClothData) {
+	LUA->CreateTable();
+
+	//loop thru all particles & add to table (on stack)
+	float3 particlePos;
+	Vector gmodPos;
+	for (int i = 0; i < FLEX_Simulation->triangles.size(); i++) {
+		LUA->PushNumber((double)i + 1);
+		LUA->CreateTable();		//table inside bigger table
+
+		for (int j = 0; j < FLEX_Simulation->triangles[i].size(); j++) {
+			particlePos = particleBufferHost[FLEX_Simulation->triangles[i][j]];
+			gmodPos.x = particlePos.x;
+			gmodPos.y = particlePos.y;
+			gmodPos.z = particlePos.z;
+
+			LUA->PushNumber((double)j + 1);
+			LUA->PushVector(gmodPos);
+			LUA->SetTable(-3);	
+		}
+
 		LUA->SetTable(-3);
 	}
 
@@ -695,6 +728,7 @@ void PopulateFunctions(ILuaBase* LUA) {
 	ADD_FUNC(RemoveAll, "RemoveAll");
 	ADD_FUNC(ParticlesNear, "ParticlesNear");
 	ADD_FUNC(GetData, "GetData");
+	ADD_FUNC(GetClothData, "GetClothData");
 	ADD_FUNC(SetRenderDistance, "SetRenderDistance");
 	ADD_FUNC(GetRenderDistance, "GetRenderDistance");
 

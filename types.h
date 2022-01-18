@@ -116,7 +116,7 @@ public:
     std::map<std::string, float> gwaterMap;
     NvFlexParams* flexParams;
     NvFlexSolverDesc flexSolverDesc;
-
+    std::vector<std::vector<int>> triangles;
     float radius;
 
     void addParticle(Vector pos, Vector vel);
@@ -144,7 +144,7 @@ public:
     void applyForceOutwards(float3 pos, float strength, float radius, bool linear);
 
     // springs (flex provided functions)
-    void CreateSpringGrid(float3 lower, int dx, int dy, int dz, float radius, int phase, float stretchStiffness, float3 velocity, float invMass);
+    void CreateSpringGrid(float3 lower, int dx, int dy, int dz, float radius, int phase, float stretchStiffness, float invMass);
     void CreateSpring(int i, int j, float stiffness, float give = 0.0f);
 
     void addForceField(Vector pos, float radius, float strength, bool linear, int type);

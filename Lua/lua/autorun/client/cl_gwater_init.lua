@@ -1,15 +1,13 @@
 
 --initialize swimming, rendering, and sim/lostparticles
-hook.Add("GWaterInitialized", "GWater.Startup", function()
+hook.Add("GWaterPostInitialized", "GWater.Startup", function()
     if not gwater or not gwater.HasModule then return end
-    local propQueue = {}
     local isSwimming = false
-    local time = 0
     local water_sound_id = 0
 
     timer.Create("GWATER_CANSWIM", 0.1, 0, function()
         local particlesNearMe = gwater.ParticlesNear(LocalPlayer():GetPos() + Vector(0, 0, 30), 1.5)
-        if particlesNearMe > 13 then
+        if particlesNearMe > 13 then --13
             if not isSwimming then
                 isSwimming = true
                 net.Start("GWATER_SWIMMING")
@@ -17,7 +15,7 @@ hook.Add("GWaterInitialized", "GWater.Startup", function()
                     net.WriteFloat(1)
                 net.SendToServer()
                 LocalPlayer():EmitSound("Physics.WaterSplash")
-                LocalPlayer():SetDSP(14)
+                LocalPlayer():SetDSP(14, true)
                 water_sound_id = LocalPlayer():StartLoopingSound("ambient/water/underwater.wav")
             end
         elseif isSwimming then
@@ -27,7 +25,7 @@ hook.Add("GWaterInitialized", "GWater.Startup", function()
                 net.WriteFloat(1)
             net.SendToServer()
             LocalPlayer():EmitSound("Physics.WaterSplash")
-            LocalPlayer():SetDSP(0)
+            LocalPlayer():SetDSP(0, true)
             LocalPlayer():StopLoopingSound(water_sound_id)
         end
 
@@ -39,24 +37,39 @@ hook.Add("GWaterInitialized", "GWater.Startup", function()
         end
     end)
 
-	local rendercvar = gwater.Convars["enablerendering"]
-	hook.Add("PreDrawTranslucentRenderables", "GWATER_RENDER", function(drawingDepth, drawingSkybox, isDraw3DSkybox)
-		if drawingSkybox then return end
-		if not rendercvar:GetBool() then return end
-		render.SetMaterial(gwater.Material)
-        
-        local fov = LocalPlayer():GetFOV()
+    -- rendering
+    local rendercvar = gwater.Convars["enablerendering"]
+    local fov = LocalPlayer():GetFOV()
+
+    local drawSprite = render.DrawSprite
+    local drawSphere = render.DrawSphere
+    local override = true
+
+    function GWater_DrawSprite(pos, size)   --cache drawSprite and put this on _G for faster lookup in c++
+        if override then
+            drawSprite(pos, size, size)
+        else
+            drawSphere(pos, size * 0.6, 5, 5)
+        end
+    end
+
+    hook.Add("PostDrawTranslucentRenderables", "GWATER_RENDER", function(drawingDepth, drawingSkybox, isDraw3DSkybox)
+        if drawingSkybox then return end
+        if not rendercvar:GetBool() then return end
+        override = gwater.Material != gwater.Materials["expensivewater"]
+        render.SetMaterial(gwater.Material)
+
         local eye = EyeAngles()
         local forward = eye:Forward() * math.atan((fov / 45) / 1) * 1.5
         local dir1 = forward + eye:Right()
         local dir2 = forward - eye:Right()
         local dir3 = forward + eye:Up() * 2
         local dir4 = forward - eye:Up() * 2
-		--gwater.RenderedParticles = gwater.RenderParticles(EyePos(), eye:Up(), eye:Right(), eye:Forward(), fov)
+        --gwater.RenderedParticles = gwater.RenderParticles(EyePos(), eye:Up(), eye:Right(), eye:Forward(), fov)
         gwater.RenderedParticles = gwater.RenderParticles(EyePos(), dir1, dir2, dir3, dir4)
-	end)
+    end)
 
     hook.Add( "HUDPaint", "GWATER_SCORE", function()
-        draw.DrawText(tostring(gwater.GetParticleCount()), "TargetID", ScrW() * 0.99, ScrH() * 0.01, color_white, TEXT_ALIGN_RIGHT )
+        draw.DrawText(tostring(gwater.GetParticleCount()), "TargetID", ScrW() * 0.99, ScrH() * 0.01, color_white, TEXT_ALIGN_RIGHT)
     end)
 end)

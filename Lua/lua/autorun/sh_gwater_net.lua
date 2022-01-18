@@ -15,31 +15,37 @@ if SERVER then
 		if not ply then return end
 		local bool = net.ReadBool()
 		local spd = net.ReadFloat()
-		
+
 		ply.GWATER_SWIMMING = bool
 		ply.GWATER_SPEED = math.Clamp(spd, 0, 10)
-		
+
 		--tell clients to make the player look like they are swimming
 		net.Start("GWATER_SWIMMING")
 			net.WriteEntity(ply)
 			net.WriteBool(bool)
 		net.Broadcast()
+
+		--[[
+		ply.WantWallCrawling = bool
+		net.Start("WallCrawlingStatus")
+			net.WriteBool(ply.WantWallCrawling)
+		net.Send(ply)]]
 	end)
-	
+
 	net.Receive("GWATER_REMOVE", function(len, ply)
 		local pos = net.ReadVector()
 		local r = math.Clamp(net.ReadInt(16), 1, 2500)
-		
+
 		net.Start("GWATER_REMOVE")
 			net.WriteVector(pos)
 			net.WriteInt(r, 16)
 		net.Broadcast()
 	end)
 else
-	hook.Add("GWaterInitialized", "GWater.Networking", function()
+	hook.Add("GWaterPostInitialized", "GWater.Networking", function()
 		local enablenetworking = gwater.Convars["enablenetworking"]
 		local netlimit = gwater.Convars["maxnetparticles"]
-	
+
 		--cubes
 		net.Receive("GWATER_SPAWNCUBE", function()
 			if not gwater then return end
@@ -48,14 +54,14 @@ else
 			local pos = net.ReadVector()
 			local wsize = net.ReadVector()
 			local sum = wsize.x + wsize.y + wsize.z
-			
+
 			if sum > 60 then return end
 			if (not enablenetworking:GetBool() or gwater.NetworkParticleCount + sum > netlimit:GetInt()) and owner ~= LocalPlayer() then return end
-	
+
 			gwater.NetworkParticleCount = gwater.NetworkParticleCount + sum
 			gwater.SpawnCubeExact(pos, wsize, gwater.GetRadius() * 0.9, Vector(0, 0, 0))
 		end)
-		
+
 		--spheres
 		net.Receive("GWATER_SPAWNSPHERE", function()
 			if not gwater then return end
@@ -63,10 +69,10 @@ else
 			local owner = net.ReadEntity()
 			local pos = net.ReadVector()
 			local wsize = net.ReadInt(8)
-			
+
 			if wsize > 20 then return end
 			if (not enablenetworking:GetBool() or gwater.NetworkParticleCount + wsize * wsize * wsize > netlimit:GetInt()) and owner ~= LocalPlayer() then return end
-			
+
 			gwater.NetworkParticleCount = gwater.NetworkParticleCount + wsize * wsize * wsize
 			gwater.SpawnSphere(pos, wsize, gwater.GetRadius() * 0.9, Vector(0, 0, 0))
 		end)
@@ -105,38 +111,38 @@ end)
 hook.Add("Move", "GWater.Swimming", function(ply, move)
 	if not ply.GWATER_SWIMMING or CLIENT then return end
 
-    local vel = move:GetVelocity()
-    local ang = move:GetMoveAngles()
+	local vel = move:GetVelocity()
+	local ang = move:GetMoveAngles()
 
-    local acel = 
-    (ang:Forward() * move:GetForwardSpeed()) +
-    (ang:Right() * move:GetSideSpeed()) +
-    (ang:Up() * move:GetUpSpeed())
+	local acel =
+	(ang:Forward() * move:GetForwardSpeed()) +
+	(ang:Right() * move:GetSideSpeed()) +
+	(ang:Up() * move:GetUpSpeed())
 
-    local aceldir = acel:GetNormalized()
-    local acelspeed = math.min(acel:Length(), ply:GetMaxSpeed()) * ply.GWATER_SPEED
-    acel = aceldir * acelspeed * 2
+	local aceldir = acel:GetNormalized()
+	local acelspeed = math.min(acel:Length(), ply:GetMaxSpeed()) * ply.GWATER_SPEED
+	acel = aceldir * acelspeed * 2
 
 	if bit.band(move:GetButtons(), IN_JUMP) ~= 0 then
-        acel.z = acel.z + ply:GetMaxSpeed() * ply.GWATER_SPEED
-    end
+	    acel.z = acel.z + ply:GetMaxSpeed() * ply.GWATER_SPEED
+	end
 
-    vel = vel + acel * FrameTime()
-    vel = vel * (1 - FrameTime() * 2)
+	vel = vel + acel * FrameTime()
+	vel = vel * (1 - FrameTime() * 2)
 
-   	local pgrav = ply:GetGravity() == 0 and 1 or ply:GetGravity()
-    local gravity = pgrav * gravity_convar:GetFloat() * 0.5
-    vel.z = vel.z + FrameTime() * gravity
+	local pgrav = ply:GetGravity() == 0 and 1 or ply:GetGravity()
+	local gravity = pgrav * gravity_convar:GetFloat() * 0.5
+	vel.z = vel.z + FrameTime() * gravity
 
-    move:SetVelocity(vel * 0.99)
+	move:SetVelocity(vel * 0.99)
 end)
 
 hook.Add("FinishMove", "GWater.Swimming", function(ply, move)
 	if not ply.GWATER_SWIMMING then return end
-    local vel = move:GetVelocity()
-    local pgrav = ply:GetGravity() == 0 and 1 or ply:GetGravity()
-    local gravity = pgrav * gravity_convar:GetFloat() * 0.5
-    
-    vel.z = vel.z + FrameTime() * gravity
-    move:SetVelocity(vel)
+	local vel = move:GetVelocity()
+	local pgrav = ply:GetGravity() == 0 and 1 or ply:GetGravity()
+	local gravity = pgrav * gravity_convar:GetFloat() * 0.5
+
+	vel.z = vel.z + FrameTime() * gravity
+	move:SetVelocity(vel)
 end)

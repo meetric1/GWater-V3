@@ -214,8 +214,8 @@ void FLEX_API::addMeshCapsule(GarrysMod::Lua::ILuaBase* LUA) {
 
 //updates position of mesh `id` (50000 is max gmod weight)
 void FLEX_API::updateMeshPos(Vector pos, QAngle ang, int id) {
-    props[id].lastPos = float4(pos, 1.f / 50000.f);
-    props[id].lastAng = quatFromAngle(ang);
+    props[id].pos = float4(pos, 1.f / 50000.f);
+    props[id].ang = quatFromAngle(ang);
 }
 
 
@@ -230,41 +230,28 @@ void FLEX_API::CreateSpring(int i, int j, float stiffness, float give) {
 
 inline int GridIndex(int x, int y, int dx) {return y * dx + x;}
 
-void FLEX_API::CreateSpringGrid(float3 lower, int dx, int dy, int dz, float radius, int phase, float stiffness, float3 velocity, float invMass) {
+void FLEX_API::CreateSpringGrid(float3 lower, int dx, int dy, int dz, float radius, int phase, float stiffness, float invMass) {
     int baseIndex = ParticleCount;
     LUA_Print("Initial Particle Count: " + std::to_string(baseIndex));
     LUA_Print("Initial Spring Count: " + std::to_string(SpringCount));
+
     for (int y = 0; y < dy; ++y)
     {
         for (int x = 0; x < dx; ++x)
         {
-            float3 positionfloat3 = lower + float3(radius) * float3(float(x), float(y), 0);
+            float3 positionfloat3 = lower + float3(radius) * float3(float(x) + 0.5f, float(y) + 0.5f, 0);
             float4 positionfloat4 = float4(positionfloat3.x, positionfloat3.y, positionfloat3.z, invMass);
         
             simBuffers->particles[ParticleCount] = positionfloat4;
-            simBuffers->velocities[ParticleCount] = velocity;
+            simBuffers->velocities[ParticleCount] = float3(0.f);
             simBuffers->phases[ParticleCount] = phase;
             simBuffers->activeIndices[ParticleCount] = ParticleCount;
             ParticleCount++;
-
-            if (x > 0 && y > 0)
-            {
-                //g_buffers->triangles.push_back(baseIndex + GridIndex(x - 1, y - 1, dx));
-                //g_buffers->triangles.push_back(baseIndex + GridIndex(x, y - 1, dx));
-                //g_buffers->triangles.push_back(baseIndex + GridIndex(x, y, dx));
-
-                //g_buffers->triangles.push_back(baseIndex + GridIndex(x - 1, y - 1, dx));
-                //g_buffers->triangles.push_back(baseIndex + GridIndex(x, y, dx));
-                //g_buffers->triangles.push_back(baseIndex + GridIndex(x - 1, y, dx));
-
-                //g_buffers->triangleNormals.push_back(float3(0.0f, 1.0f, 0.0f));   //worry about this later
-                //g_buffers->triangleNormals.push_back(float3(0.0f, 1.0f, 0.0f));
-            }
         }
     }
 
     LUA_Print("After Particle Count: " + std::to_string(ParticleCount));
-    LUA_Print("This ^ should be: " + std::to_string(dx * dy));
+    LUA_Print("This ^ should be: " + std::to_string(dx * dy + baseIndex));
 
     // horizontal
     for (int y = 0; y < dy; ++y)
@@ -299,32 +286,24 @@ void FLEX_API::CreateSpringGrid(float3 lower, int dx, int dy, int dz, float radi
         }
     }
 
-    // vertical
-    /*
-    for (int x = 0; x < dx; ++x)
+    // push triangles to a vector
+    std::vector<int> tris;
+    for (int y = 1; y < dy; ++y)
     {
-        for (int y = 0; y < dy; ++y)
+        for (int x = 1; x < dx; ++x)
         {
-            int index0 = y * dx + x;
-
-            if (y > 0)
-            {
-                int index1 = (y - 1) * dx + x;
-                CreateSpring(baseIndex + index0, baseIndex + index1, stretchStiffness);
-            }
-
-            if (y > 1)
-            {
-                int index2 = (y - 2) * dx + x;
-                CreateSpring(baseIndex + index0, baseIndex + index2, bendStiffness);
-            }
+            tris.push_back(baseIndex + (y * dx + x));
+            tris.push_back(baseIndex + (y * dx + x - 1));
+            tris.push_back(baseIndex + ((y - 1) * dx + x));
+            tris.push_back(baseIndex + ((y - 1) * dx + x - 1));
         }
-    }*/
+    }
+    triangles.push_back(tris);
 }
 
 void FLEX_API::addCloth(Vector pos, int width, float radius, float stiffness, float mass) {
     int phase = NvFlexMakePhase(0, eNvFlexPhaseSelfCollide);
     mapBuffers();
-    CreateSpringGrid(float3(pos) - float3(width, width, 0) * radius / 2, width, width, 1, radius, phase, stiffness, float3(0.0f), 1.f / mass);
+    CreateSpringGrid(float3(pos) - float3(width, width, 0) * radius / 2, width, width, 1, radius, phase, stiffness, 1.f / mass);
     unmapBuffers();
 }

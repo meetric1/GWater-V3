@@ -1,7 +1,7 @@
 -- by andrew
 -- purpose: stub functions for people without the gwater module
 
-hook.Add("GWaterInitialize", "GWater.Stubs", function()
+hook.Add("GWaterPostInitialized", "GWater.Stubs", function()
 	if gwater.HasModule then return end
 	
 	-- no operator, functions that would take too much effort to stub are set to this
@@ -52,22 +52,6 @@ hook.Add("GWaterInitialize", "GWater.Stubs", function()
 	gwater.ApplyForce = no_op
 	gwater.ApplyForceOutwards = no_op
 	gwater.RemoveAll = no_op
-	
-	gwater.Materials = {
-		water = CreateMaterial("GWater_Water", "Refract", {
-	  		["$refractamount"] = 0.01,
-			["$model"] = 1,
-	   		["$refracttint"] = "[0.75 1 2]",
-	        ["$normalmap"] = "shadertest/noise_normal",
-	        ["$dudvmap"] = "dev/water_dudv",
-		}),
-		simplewater = CreateMaterial("GWater_SimpleWater", "UnlitGeneric", {
-			["$basetexture"] = "vgui/circle",
-		  	["$translucent"] =  1,
-		  	["$alpha"] = 0.5,
-		  	["$color"] = "[0 0 1]"
-	  })
-	}
 	
 	print("[GWATER]: Loaded stub functions!")
 end)

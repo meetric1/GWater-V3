@@ -61,13 +61,13 @@ void FLEX_API::flexSolveThread() {
 		//update prop positions (start at 1 because world never moves)
 		for (int i = 1; i < props.size(); i++) {
 			Prop* prop = &props[i];
-			simBuffers->positions[i] = prop->lastPos;
-			simBuffers->rotations[i] = prop->lastAng;
-			simBuffers->prevPositions[i] = prop->pos;
-			simBuffers->prevRotations[i] = prop->ang;
+			simBuffers->positions[i] = prop->pos;
+			simBuffers->rotations[i] = prop->ang;
+			simBuffers->prevPositions[i] = prop->lastPos;
+			simBuffers->prevRotations[i] = prop->lastAng;
 
-			prop->pos = prop->lastPos;
-			prop->ang = prop->lastAng;
+			prop->lastPos = prop->pos;
+			prop->lastAng = prop->ang;
 		}
 
 		//copy to particle host to be used in rendering

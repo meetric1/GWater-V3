@@ -12,7 +12,7 @@ void gjelly_error(NvFlexErrorSeverity type, const char* msg, const char* file, i
 
 //add a particle to flex
 void FLEX_API::addParticle(Vector pos, Vector vel) {
-    Particle particle = Particle{float4(pos , 0.5), float3(vel)};
+    Particle particle = Particle{float4(pos, 0.5f), float3(vel)};
     particleQueue.push_back(particle);
 }
 
@@ -106,7 +106,7 @@ int FLEX_API::removeInRadius(float3 pos, float radius) {
     int numParticlesRemoved = 0;
     int num = ParticleCount;
     for (int i = 0; i < num; i++) {
-        if (DistanceSquared(simBuffers->particles[i], pos) >= radius || simBuffers->particles[i].w != 0.5) {
+        if (DistanceSquared(simBuffers->particles[i], pos) >= radius) {
             simBuffers->particles[n] = simBuffers->particles[i];
             simBuffers->velocities[n] = simBuffers->velocities[i];
             simBuffers->phases[n] = simBuffers->phases[i];
@@ -310,6 +310,7 @@ void FLEX_API::deleteForceField(int ID) {
 
 void FLEX_API::removeAllParticles() {
     particleQueue.clear();
+    triangles.clear();
     mapBuffers();
     memset(simBuffers->particles, NULL, sizeof(float4) * MAX_PARTICLES);
     memset(simBuffers->indices, NULL, sizeof(int) * MAX_PARTICLES);
@@ -403,6 +404,7 @@ FLEX_API::~FLEX_API() {
 
         NvFlexExtDestroyForceFieldCallback(forceFieldData->forceFieldCallback);
 
+        delete forceFieldData;
         delete flexParams;
 
         free(particleBufferHost);
@@ -414,6 +416,8 @@ FLEX_API::~FLEX_API() {
 
         //if for some reason there are some still in queue
         particleQueue.clear();
+        props.clear();
+        triangles.clear();
 
     }
 
