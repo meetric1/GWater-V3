@@ -324,7 +324,7 @@ local function renderingTab(tabs)
 	refract:SetDecimals(5)
 	
 	refract.OnValueChanged = function(self, value)
-		if gwater.Material != gwater.Materials["simplewater"] then
+		if gwater.Material != gwater.Materials["simple_water"] then
 			gwater.Material:SetFloat("$refractamount", value)
 		else
 			gwater.Material:SetFloat("$alpha", value * 10)
@@ -598,8 +598,8 @@ end
 
 
 concommand.Add("gwater_menu", function()
-	if not gwater or not gwater.GetLuaVersion then 
-		print("PANIC! UNABLE TO OPEN GWATER MENU?? HAS THE WORLD BEEN SENT TO CLIENT YET?")
+	if not gwater then 
+		print("PANIC! UNABLE TO OPEN MENU??")
 		return 
 	end
 	if gwater.Menu then return end
@@ -611,8 +611,8 @@ concommand.Add("gwater_menu", function()
 	menu:Center()
 	menu:MakePopup()
 	menu.Paint = function(self, w, h)
-		if gwater and gwater.Materials["expensivewater"] then
-			surface.SetMaterial(gwater.Materials["expensivewater"])
+		if gwater and gwater.Materials["expensive_water"] then
+			surface.SetMaterial(gwater.Materials["expensive_water"])
 			surface.SetDrawColor(255, 255, 255, 50)
 			surface.DrawTexturedRect(0, 0, w, h)
 		end

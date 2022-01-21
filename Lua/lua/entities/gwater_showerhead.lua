@@ -1,6 +1,6 @@
 AddCSLuaFile()
 
-ENT.Type = "anim"
+ENT.Type 			= "anim"
 ENT.Category		= "GWater"
 ENT.PrintName		= "Shower Head"
 ENT.Author			= "Mee & AndrewEathan (with help from PotatoOS)"

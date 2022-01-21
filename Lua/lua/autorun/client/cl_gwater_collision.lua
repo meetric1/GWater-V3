@@ -1,15 +1,82 @@
 local MAX_CONVEXES_PER_PROP = 8
-local MAX_COLLISIONS = 1000
+local MAX_COLLISIONS = 4096 - MAX_CONVEXES_PER_PROP - 1
 local propQueue = propQueue or {}
 local sentQueue = sentQueue or {}
 
 local margin = Vector(16, 16, 16)
-local propQueueSpeed = 3 --how many entities can be validated per tick?
+local propQueueSpeed = 8 --how many entities can be validated per tick?
+local sentMaxAttempts = 256 --how many ticks to try to validate SENT physics?
+
+--Allow collisions for these brush entities
+--This is a whitelist
+local allowedBrushEntities = {
+	func_door = true,
+	func_door_rotating = true,
+	func_movelinear = true,
+	func_tracktrain = true,
+	func_wall = true,
+	func_breakable = true,
+	func_brush = true,
+	func_detail = true,
+	func_lod = true,
+	func_rotating = true,
+	func_physbox = true,
+}
+
+-- sent classes in which collisions are networked and are buffered
+local sentWhitelist = {
+
+}
 
 local function addPropMesh(prop)
-	if #gwater.Meshes > MAX_COLLISIONS then return end
+	if #gwater.Meshes > MAX_COLLISIONS then print("[GWATER]: Max mesh limit reached!") return end
 	if not prop or not prop:IsValid() then return end
 
+	--SENT handling
+	--if SENT, ignore the sent from ignoreSENTs and process SENT if physobj is valid.
+	if prop:IsScripted() and prop:GetPhysicsObject():IsValid() then
+		for k, convex in pairs(prop:GetPhysicsObject():GetMeshConvexes()) do
+			local finalMesh = {}
+			for k, tri in pairs(convex) do
+				table.insert(finalMesh, tri.pos)
+			end
+			gwater.AddConvexMesh(finalMesh, prop:OBBMins() - margin, prop:OBBMaxs() + margin, prop:GetPos(), prop:GetAngles())
+			table.insert(gwater.Meshes, prop)
+		end
+		--return function early, it's finished, no need for rest of checks.
+		return
+	end
+
+	--Only use brush surfaces for brushes
+	--If entity is a whitelisted brush
+	if allowedBrushEntities[prop:GetClass()] then
+		local finalMesh = {}
+		--get all surfaces
+		local surfaces = prop:GetBrushSurfaces()
+		--skip if brush has no surfaces.
+		if #surfaces == 0 then return end
+		--combine all brush surfaces into a convex shape.
+		for k, surfinfo in pairs(surfaces) do
+			local vertices = surfinfo:GetVertices()
+			--triangulate polygon shapes, use vertex 1 as "pivot"
+			for i = 1, #vertices - 2 do
+				local len = #finalMesh
+				finalMesh[len + 1] = vertices[1]
+				finalMesh[len + 2] = vertices[i + 1]
+				finalMesh[len + 3] = vertices[i + 2]
+			end
+		end
+		--only add brushes with a relevant shape, adding no triangles kind of is like... uhhhhhhhh dont
+		--skip if no triangles, should never be reached, but just an extra measure to prevent a crash.
+		if #finalMesh == 0 then return end
+		--add this concave shape, it may actually have holes frankly
+		gwater.AddConcaveMesh(finalMesh, prop:OBBMins() - margin, prop:OBBMaxs() + margin, prop:GetPos(), prop:GetAngles())
+		table.insert(gwater.Meshes, prop)
+		--return function early, it's finished, no need for rest of checks.
+		return
+	end
+
+	--normal checking continues from here
 	local model = prop:GetModel()
 	if not model then return end
 	if not util.GetModelMeshes(model) then return end
@@ -42,7 +109,7 @@ local function addPropMesh(prop)
 				table.insert(finalMesh, tri.pos)
 			end
 		end
-		gwater.AddConcaveMesh(finalMesh, prop:OBBMins() - Vector(10), prop:OBBMaxs() + Vector(10), prop:GetPos(), prop:GetAngles())
+		gwater.AddConcaveMesh(finalMesh, prop:OBBMins() - margin, prop:OBBMaxs() + margin, prop:GetPos(), prop:GetAngles())
 		table.insert(gwater.Meshes, prop)
 	end
 
@@ -50,37 +117,88 @@ local function addPropMesh(prop)
 	prop:PhysicsDestroy()
 end
 
-hook.Add("GWaterPostInitialized", "GWater.Collision", function()
+hook.Add("GWaterInitialized", "GWater.InitFunctions", function()
+	print("fuCK\n\n\n\n\n")
 	if not gwater or not gwater.HasModule then return end
-	local whitelist = gwater.Whitelist
-
-	--initially add props
-	local props = ents.GetAll()
-	for k, v in ipairs(props) do
-		if v:IsValid() and not v.GWATER_UPLOADED and whitelist[v:GetClass()] then
-			table.insert(propQueue, v)
-			v.GWATER_UPLOADED = true
-		end
-	end
-	--adds props using OnEntityCreated hook
-	hook.Add("OnEntityCreated", "GWater.EntityHandler", function(ent)
-		if ent:IsValid() and not ent.GWATER_UPLOADED and whitelist[ent:GetClass()] then
-			table.insert(propQueue, ent)
-			ent.GWATER_UPLOADED = true
-		end
-	end)
-
-	--update props, forcefields, and queue
-	hook.Add("Think", "GWATER_UPDATE_COLLISION", function()
-		--update meshes
+	print("AAAEAEWEAE")
+	--removes a prop from the collisison queue, allows it's collision to be re-evaluated with the function below this one
+	function gwater.InvalidateCollision(ent)
+		if not (ent and ent:IsValid()) then return end
+		if not (ent.GWATER_UPLOADED and sentQueue[ent:EntIndex()]) then return end
+		--frankly we gotta search through this table... dammit
 		for k, v in ipairs(gwater.Meshes) do
-			if not v:IsValid() or not whitelist[v:GetClass()] then
+			if ent == v then
+				ent.GWATER_UPLOADED = nil
 				gwater.RemoveMesh(k)
 				table.remove(gwater.Meshes, k)
 				break
 			end
+		end
+	end
+
+	--Add a prop to the collision queue
+	function gwater.AddColliderToQueue( ent )
+		if ent:IsValid() and not ent.GWATER_UPLOADED and (gwater.Whitelist[ent:GetClass()] or allowedBrushEntities[ent:GetClass()] ) then
+			if ent:IsScripted() and not ent:GetPhysicsObject():IsValid() and sentWhitelist[ent:GetClass()] then --sents do phys only
+				sentQueue[ ent:EntIndex() ] = ent
+			else --not scripted ents dont matter, just add them
+				table.insert(propQueue, ent)
+				ent.GWATER_UPLOADED = true
+			end
+		end
+	end
+
+	-- adds a class to the special sent whitelist
+	function gwater.AddSpecialSENTClass(class)
+		if class then
+			sentWhitelist[class] = true
+		else
+			print("[GWATER]: Invalid class!")
+		end
+	end
+end)
+
+hook.Add("GWaterPostInitialized", "GWater.Collision", function()
+	if not gwater or not gwater.HasModule then return end
+
+	--initially add props
+	local props = ents.GetAll()
+	for k, v in ipairs(props) do
+		gwater.AddColliderToQueue( v )
+	end
+	--adds props using OnEntityCreated hook
+	hook.Add("OnEntityCreated", "GWater.EntityHandler", function(ent)
+		gwater.AddColliderToQueue( ent )
+	end)
+
+	--update props, forcefields, and queue
+	hook.Add("Think", "GWATER_UPDATE_COLLISION", function()
+		--SENT queue, to make sure the physprop is valid.
+		--This acts as a delayed buffer, as SENTs sometimes take time before their physprop is valid, such as delays caused by networking.
+		for k, v in pairs(sentQueue) do
+			--just remove from queue if entity is not valid
+			if not v:IsValid() then sentQueue[k] = nil continue end
+			--add SENT to propqueue when physobject is valid
+			--also add the SENT to the propqueue if sentMaxAttempts has been reached
+			if ( v.GWaterPhysAttempts == sentMaxAttempts ) or v:GetPhysicsObject():IsValid() then
+				sentQueue[k] = nil
+				table.insert(propQueue, v)
+				v.GWaterPhysAttempts = nil
+				v.GWATER_UPLOADED = true
+			else --retry, add 1 to attempts count
+				v.GWaterPhysAttempts = (v.GWaterPhysAttempts or 0) + 1
+			end
+		end
+
+		--update meshes
+		for k, v in ipairs(gwater.Meshes) do
+			if not v:IsValid() or not ( gwater.Whitelist[v:GetClass()] or allowedBrushEntities[v:GetClass()] ) then
+				gwater.RemoveMesh(k)
+				table.remove(gwater.Meshes, k)
+				continue
+			end
 			--always update SENTs, their velocity is often broken on the client
-			if v:IsScripted() or (v:GetVelocity() ~= Vector()) then
+			if v:IsScripted() or allowedBrushEntities[v:GetClass()] or (v:GetVelocity() ~= Vector()) then
 				gwater.SetMeshPos(v:GetPos(), v:GetAngles(), k)
 			end
 		end
@@ -90,7 +208,7 @@ hook.Add("GWaterPostInitialized", "GWater.Collision", function()
 			if not v:IsValid() then
 				gwater.RemoveForceField(k)
 				table.remove(gwater.ForceFields, k)
-				break
+				continue
 			end
 
 			if v:GetVelocity() == Vector() then continue end
@@ -104,4 +222,13 @@ hook.Add("GWaterPostInitialized", "GWater.Collision", function()
 			table.remove(propQueue, 1)
 		end
 	end)
+
+	hook.Add("PreCleanupMap", "GWater_CleanMapFix", function()
+		gwater.RemoveAll()
+		for k, v in ipairs(gwater.Meshes) do
+			gwater.RemoveMesh(1)
+		end
+		table.Empty(gwater.Meshes)
+	end)
 end)
+

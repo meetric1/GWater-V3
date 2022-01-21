@@ -1,7 +1,7 @@
 #include "types.h"
 #include "declarations.h"
 
-#define MAX_COLLIDERS 1024
+#define MAX_COLLIDERS 4096
 #define MAX_PARTICLES 65536
 
 //tysm this was very useful for debugging
@@ -55,17 +55,16 @@ void FLEX_API::unmapBuffers() {
 void FLEX_API::freeProp(int id) {
     Prop* prop = &props[id];
 
-    NvFlexFreeBuffer(prop->verts);
-    if (prop->indices == nullptr) {
-        if (prop->verts != nullptr) {
+    if (prop->verts != nullptr) {
+        NvFlexFreeBuffer(prop->verts);
+        if (prop->indices == nullptr) {
             NvFlexDestroyConvexMesh(flexLibrary, prop->meshID);      //must be convex
         }
+        else {
+            NvFlexFreeBuffer(prop->indices);
+            NvFlexDestroyTriangleMesh(flexLibrary, prop->meshID);    //must be triangle mesh
+        }
     }
-    else {
-        NvFlexFreeBuffer(prop->indices);
-        NvFlexDestroyTriangleMesh(flexLibrary, prop->meshID);    //must be triangle mesh
-    }
-
 
     mapBuffers();
     for (int i = id; i < PropCount; i++) {

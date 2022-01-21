@@ -44,7 +44,10 @@ LUA_FUNCTION(RenderParticles) {
 	LUA->CheckType(-2, Type::Vector);	//dir right
 	LUA->CheckType(-3, Type::Vector);	//dir down
 	LUA->CheckType(-4, Type::Vector);	//dir up
-	LUA->CheckType(-5, Type::Vector);	//pos
+	LUA->CheckType(-5, Type::Vector);	//eye pos
+	LUA->CheckType(-6, Type::Number);	//override
+
+	if (ParticleCount < 1) return 1;
 
 	float3 directionArray[4];
 	for (int i = 0; i < 4; i++)
@@ -52,10 +55,14 @@ LUA_FUNCTION(RenderParticles) {
 
 	float3 eyePos = LUA->GetVector(-5);
 
-	LUA->Pop(5);
+	// draw sprite or sphere?
+	float overrideNum = static_cast<float>(LUA->GetNumber(-6));
+	float particleRadius = FLEX_Simulation->radius * overrideNum;
+	const char* overrideString = overrideNum != 0.6f ? "GWater_DrawSprite" : "GWater_DrawSphere";
+
+	LUA->Pop(6);
 	LUA->PushSpecial(SPECIAL_GLOB);
 
-	float particleRadius = FLEX_Simulation->radius;
 	int numParticlesRendered = 0;
 
 	float4 particlePos;	// Reassign these, dont redeclare them
@@ -85,7 +92,7 @@ LUA_FUNCTION(RenderParticles) {
 		gmodPos.z = particlePos.z;
 
 		//draws the sprite
-		LUA->GetField(-1, "GWater_DrawSprite");
+		LUA->GetField(-1, overrideString);
 		LUA->PushVector(gmodPos);
 		LUA->PushNumber(particleRadius);
 		LUA->Call(2, 0);	//pops literally everything above except _G

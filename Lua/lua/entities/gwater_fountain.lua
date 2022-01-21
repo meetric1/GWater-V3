@@ -23,9 +23,10 @@ function ENT:Initialize()
 	self:SetMoveType(MOVETYPE_VPHYSICS)
 	self:SetSolid(SOLID_VPHYSICS)
 	self:SetUseType(SIMPLE_USE)
+	self:PhysWake()
 	
 	local phys = self:GetPhysicsObject()
-	phys:SetMass(150)
+	phys:SetMass(1500)
 end
 
 function ENT:Use()

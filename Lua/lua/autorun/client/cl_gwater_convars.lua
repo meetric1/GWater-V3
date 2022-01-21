@@ -1,6 +1,6 @@
 -- by andrew
 
-hook.Add("GWaterInitialize", "GWater.Convars", function()
+hook.Add("GWaterInitialized", "GWater.Convars", function()
 	gwater.Convars = {}
 	
 	gwater.Convars["enablerendering"] = CreateClientConVar("gwater_enablerendering", "1", true, false)

@@ -1,6 +1,6 @@
 -- by andrew
 
-hook.Add("GWaterInitialize", "GWater.Params", function()
+hook.Add("GWaterInitialized", "GWater.Params", function()
 	gwater.Params = {
 		viscosity = {
 			prettyname = "Viscosity",
@@ -125,22 +125,24 @@ hook.Add("GWaterInitialize", "GWater.Params", function()
 		}
 	}
 
+	-- create a water material
 	gwater.Materials = {
 		water = CreateMaterial("GWater_Water", "Refract", {
-			["$refractamount"] = 0.005,
+			["$refractamount"] = 0.01,
 			["$model"] = 1,
 			["$refracttint"] = "[0.75 1 2]",
-			["$normalmap"] = "gwater/gwater_normal",
+			["$normalmap"] = "gwater/gwater_normal_alpha",
 			["$dudvmap"] = "gwater/gwater_dudv",
+			["$nocull"] = 1,
 		}),
-		expensivewater = CreateMaterial("GWater_ExpensiveWater", "Refract", {
+		expensive_water = CreateMaterial("GWater_ExpensiveWater", "Refract", {
 			["$refractamount"] = 0.01,
 			["$model"] = 1,
 			["$refracttint"] = "[0.75 1 2]",
 			["$normalmap"] = "shadertest/noise_normal",
 			["$dudvmap"] = "dev/water_dudv",
 		}),
-		simplewater = CreateMaterial("GWater_SimpleWater", "UnlitGeneric", {
+		simple_water = CreateMaterial("GWater_SimpleWater", "UnlitGeneric", {
 	  		["$basetexture"] = "vgui/circle",
 			["$translucent"] =  1,
 			["$alpha"] = 0.5,
@@ -150,7 +152,13 @@ hook.Add("GWaterInitialize", "GWater.Params", function()
 			["$basetexture"] = "models/props_c17/FurnitureFabric003a",
 			["$alpha"] = 1,
 			["$nocull"] = 1,
-		})
+		}),
+		original_water = CreateMaterial("GWater_OriginalWater", "Refract", {
+			["$refractamount"] = 0.01,
+			["$refracttint"] = "[0.75 1 2]",
+			["$normalmap"] = "shadertest/noise_normal",
+			["$dudvmap"] = "dev/water_dudv",
+		}),
 	}
 
 	language.Add("gwater_missing_module", "Sorry, you either don't have the GWater binary module, or you're on a platform besides Windows! \nYou can still see the particles you'll try to spawn, but they will be normal Garry's Mod particles as a placeholder!")

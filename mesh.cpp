@@ -221,6 +221,7 @@ void FLEX_API::updateMeshPos(Vector pos, QAngle ang, int id) {
 
 //https://github.com/NVIDIAGameWorks/FleX/blob/b1ea0f87b72582649c935d53fd8531b1e7335160/demo/helpers.h
 void FLEX_API::CreateSpring(int i, int j, float stiffness, float give) {   
+    if (SpringCount >= flexSolverDesc.maxParticles) return;
     simBuffers->indices[SpringCount * 2] = i;
     simBuffers->indices[SpringCount * 2 + 1] = j;
     simBuffers->lengths[SpringCount]= (1.0f + give) * length(float3(simBuffers->particles[i]) - float3(simBuffers->particles[j]));
@@ -232,13 +233,13 @@ inline int GridIndex(int x, int y, int dx) {return y * dx + x;}
 
 void FLEX_API::CreateSpringGrid(float3 lower, int dx, int dy, int dz, float radius, int phase, float stiffness, float invMass) {
     int baseIndex = ParticleCount;
-    LUA_Print("Initial Particle Count: " + std::to_string(baseIndex));
-    LUA_Print("Initial Spring Count: " + std::to_string(SpringCount));
 
     for (int y = 0; y < dy; ++y)
     {
         for (int x = 0; x < dx; ++x)
         {
+            if (ParticleCount >= flexSolverDesc.maxParticles) break;
+
             float3 positionfloat3 = lower + float3(radius) * float3(float(x) + 0.5f, float(y) + 0.5f, 0);
             float4 positionfloat4 = float4(positionfloat3.x, positionfloat3.y, positionfloat3.z, invMass);
         
@@ -249,9 +250,6 @@ void FLEX_API::CreateSpringGrid(float3 lower, int dx, int dy, int dz, float radi
             ParticleCount++;
         }
     }
-
-    LUA_Print("After Particle Count: " + std::to_string(ParticleCount));
-    LUA_Print("This ^ should be: " + std::to_string(dx * dy + baseIndex));
 
     // horizontal
     for (int y = 0; y < dy; ++y)
@@ -292,6 +290,8 @@ void FLEX_API::CreateSpringGrid(float3 lower, int dx, int dy, int dz, float radi
     {
         for (int x = 1; x < dx; ++x)
         {
+            if (baseIndex + (y * dx + x) >= flexSolverDesc.maxParticles) break;
+
             tris.push_back(baseIndex + (y * dx + x));
             tris.push_back(baseIndex + (y * dx + x - 1));
             tris.push_back(baseIndex + ((y - 1) * dx + x));

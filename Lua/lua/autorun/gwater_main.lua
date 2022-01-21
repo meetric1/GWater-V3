@@ -2,16 +2,16 @@ AddCSLuaFile()
 
 if SERVER then
 	net.Receive("GWATER_NETWORKMAP", function(len, ply)
-		if not ply.GWATER_DownloadedMap then --only allow this once, to prevent lag
+		if not ply.GWATER_DownloadedMap then --only allow this once, to prevent abuse
 			print("[GWATER]: Downloading physicsmap")
 			downloadMapToPlayer(ply)
 		end
 		ply.GWATER_DownloadedMap = true
 	end)
 
+	local maxConvexesPerNet = CreateConVar("gwater_netspeed", "32", FCVAR_ARCHIVE, "How many convexes to send per net message", 1, 64)
 	function downloadMapToPlayer(ply)
 		local Buffer = Entity(0):GetPhysicsObject():GetMeshConvexes()
-		local maxConvexesPerNet = 32
 		local totaltris = 0
 		local unreliable = false
 		net.Start("GWATER_NETWORKMAP", unreliable)
@@ -21,7 +21,7 @@ if SERVER then
 		hook.Add("Tick", "downloader" .. ply:EntIndex(), function()
 			local counter = 0
 			--print("s", net.BytesLeft()) net.BytesLeft() > 10000 and 
-			while counter < maxConvexesPerNet and #Buffer ~= 0 do
+			while counter < maxConvexesPerNet:GetInt() and #Buffer ~= 0 do
 				nextBrush = table.remove(Buffer)
 				net.Start("GWATER_NETWORKMAP", unreliable)
 				net.WriteUInt(1, 8) --blob
@@ -51,7 +51,6 @@ else
 	local function loadGWater()
 		if file.Exists("lua/bin/gmcl_GWater_win64.dll", "MOD") and file.Exists("lua/bin/gmcl_GWater_win32.dll", "MOD") then
 			require("GWater")
-			hook.Run("GWaterInitialized")
 			if not LocalPlayer().GWATER_DownloadedMap then
 				timer.Simple(4, function()
 					net.Start("GWATER_NETWORKMAP")
@@ -131,7 +130,7 @@ else
 			gwater.Meshes = {}
 			gwater.ForceFields = {}
 			gwater.HasModule = true
-			hook.Run("GWaterInitialize")
+			hook.Run("GWaterInitialized")
 
 			gwater.Material = gwater.Materials["water"]
 
@@ -143,11 +142,12 @@ else
 			else
 				print("[GWATER]: Successfully initialized!")
 			end
+
 		else
 			gwater = {}
 			gwater.HasModule = false
 			gwater.NetworkParticleCount = 0
-			hook.Run("GWaterInitialize")
+			hook.Run("GWaterInitialized")
 			hook.Run("GWaterPostInitialized")
 			if game.SinglePlayer() then
 				LocalPlayer():ConCommand("gwater_menu")

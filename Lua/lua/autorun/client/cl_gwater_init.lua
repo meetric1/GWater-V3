@@ -43,20 +43,25 @@ hook.Add("GWaterPostInitialized", "GWater.Startup", function()
 
     local drawSprite = render.DrawSprite
     local drawSphere = render.DrawSphere
-    local override = true
 
     function GWater_DrawSprite(pos, size)   --cache drawSprite and put this on _G for faster lookup in c++
-        if override then
-            drawSprite(pos, size, size)
-        else
-            drawSphere(pos, size * 0.6, 5, 5)
-        end
+        drawSprite(pos, size, size)
+    end
+
+    function GWater_DrawSphere(pos, size)
+        drawSphere(pos, size, 5, 5)
     end
 
     hook.Add("PostDrawTranslucentRenderables", "GWATER_RENDER", function(drawingDepth, drawingSkybox, isDraw3DSkybox)
         if drawingSkybox then return end
         if not rendercvar:GetBool() then return end
-        override = gwater.Material != gwater.Materials["expensivewater"]
+        local override = 1
+        if gwater.Material == gwater.Materials["water"] then
+            override = 1.5
+        elseif gwater.Material == gwater.Materials["expensive_water"] then
+            override = 0.6
+        end
+
         render.SetMaterial(gwater.Material)
 
         local eye = EyeAngles()
@@ -65,8 +70,8 @@ hook.Add("GWaterPostInitialized", "GWater.Startup", function()
         local dir2 = forward - eye:Right()
         local dir3 = forward + eye:Up() * 2
         local dir4 = forward - eye:Up() * 2
-        --gwater.RenderedParticles = gwater.RenderParticles(EyePos(), eye:Up(), eye:Right(), eye:Forward(), fov)
-        gwater.RenderedParticles = gwater.RenderParticles(EyePos(), dir1, dir2, dir3, dir4)
+
+        gwater.RenderedParticles = gwater.RenderParticles(override, EyePos(), dir1, dir2, dir3, dir4)
     end)
 
     hook.Add( "HUDPaint", "GWATER_SCORE", function()

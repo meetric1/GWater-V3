@@ -8,7 +8,7 @@
 #include <mutex>
 #include "types.h"
 
-#define GWATER_VERSION 1.1
+#define GWATER_VERSION 1.2
 #define ADD_FUNC(funcName, tblName) GlobalLUA->PushCFunction(funcName); GlobalLUA->SetField(-2, tblName);
 
 extern std::shared_ptr<FLEX_API> FLEX_Simulation;
