@@ -55,7 +55,12 @@ function ENT:Think()
 		local ang = self:LocalToWorldAngles(Angle(90, 0, 0))
 		local vel = self:GetVelocity()
 
-		gwater.SpawnParticle(pos + VectorRand(-2, 2), ang:Forward() * 25 + VectorRand(-1, 1) / 4 + vel / 6)
+		local drawColor = self:GetColor():ToVector()
+		if drawColor == Vector(1, 1, 1) then
+			drawColor = Vector(0.75, 1, 2)
+		end
+
+		gwater.SpawnParticle(pos + VectorRand(-2, 2), ang:Forward() * 25 + VectorRand(-1, 1) / 4 + vel / 6, drawColor)
 	end
 	
 	self:SetNextClientThink(CurTime() + 0.03)

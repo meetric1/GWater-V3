@@ -8,7 +8,7 @@
 #include <mutex>
 #include "types.h"
 
-#define GWATER_VERSION 1.2
+#define GWATER_VERSION 1.3
 #define ADD_FUNC(funcName, tblName) GlobalLUA->PushCFunction(funcName); GlobalLUA->SetField(-2, tblName);
 
 extern std::shared_ptr<FLEX_API> FLEX_Simulation;
@@ -16,10 +16,10 @@ extern GarrysMod::Lua::ILuaBase* GlobalLUA;
 
 extern std::mutex* bufferMutex;
 extern float4* particleBufferHost;
+extern float3* velocityBufferHost;
 
 extern float simTimescale;
 extern int ParticleCount;
-extern int SpringCount;
 extern int PropCount;
 extern bool SimValid;
 extern int RenderDistance;

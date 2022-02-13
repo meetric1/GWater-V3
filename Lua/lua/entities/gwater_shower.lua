@@ -63,10 +63,15 @@ function ENT:Think()
 		local vel = self:GetVelocity()
 		local fmul = self:GetForceMultiplier()
 
+		local drawColor = self:GetColor():ToVector()
+		if drawColor == Vector(1, 1, 1) then
+			drawColor = Vector(0.75, 1, 2)
+		end
+
 		for k,v in pairs(self.FlowAreas) do
 			local pos = self:LocalToWorld(v[1])
 			local ang = self:LocalToWorldAngles(v[2]) + Angle(0, 180, 0)
-			gwater.SpawnParticle(pos + VectorRand(-1, 1), ang:Forward() * 25 * fmul + vel / 6)
+			gwater.SpawnParticle(pos + VectorRand(-1, 1), ang:Forward() * 25 * fmul + vel / 6, drawColor)
 		end
 	end
 	

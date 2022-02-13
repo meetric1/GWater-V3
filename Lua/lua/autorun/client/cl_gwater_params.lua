@@ -126,11 +126,12 @@ hook.Add("GWaterInitialized", "GWater.Params", function()
 	}
 
 	-- create a water material
+	local defaultColor = "[0.75 1 2]"
 	gwater.Materials = {
 		water = CreateMaterial("GWater_Water", "Refract", {
 			["$refractamount"] = 0.01,
 			["$model"] = 1,
-			["$refracttint"] = "[0.75 1 2]",
+			["$refracttint"] = defaultColor,
 			["$normalmap"] = "gwater/gwater_normal_alpha",
 			["$dudvmap"] = "gwater/gwater_dudv",
 			["$nocull"] = 1,
@@ -138,15 +139,9 @@ hook.Add("GWaterInitialized", "GWater.Params", function()
 		expensive_water = CreateMaterial("GWater_ExpensiveWater", "Refract", {
 			["$refractamount"] = 0.01,
 			["$model"] = 1,
-			["$refracttint"] = "[0.75 1 2]",
+			["$refracttint"] = defaultColor,
 			["$normalmap"] = "shadertest/noise_normal",
 			["$dudvmap"] = "dev/water_dudv",
-		}),
-		simple_water = CreateMaterial("GWater_SimpleWater", "UnlitGeneric", {
-	  		["$basetexture"] = "vgui/circle",
-			["$translucent"] =  1,
-			["$alpha"] = 0.5,
-			["$color"] = "[0 0 1]"
 		}),
 		z_cloth = CreateMaterial("GWater_Cloth", "VertexLitGeneric", {
 			["$basetexture"] = "models/props_c17/FurnitureFabric003a",
@@ -155,7 +150,7 @@ hook.Add("GWaterInitialized", "GWater.Params", function()
 		}),
 		original_water = CreateMaterial("GWater_OriginalWater", "Refract", {
 			["$refractamount"] = 0.01,
-			["$refracttint"] = "[0.75 1 2]",
+			["$refracttint"] = defaultColor,
 			["$normalmap"] = "shadertest/noise_normal",
 			["$dudvmap"] = "dev/water_dudv",
 		}),

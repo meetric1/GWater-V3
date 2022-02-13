@@ -58,10 +58,15 @@ function ENT:Think()
 		local fmul = self:GetForceMultiplier()
 		local angle = self:GetEmissionAngle()
 		local pos = self:LocalToWorld(Vector(0, 0, 276))
+
+		local drawColor = self:GetColor():ToVector()
+		if drawColor == Vector(1, 1, 1) then
+			drawColor = Vector(0.75, 1, 2)
+		end
 		
 		for i = 0, emul do
 			local ang = self:LocalToWorldAngles(Angle(angle, i / emul * 360, 0))
-			gwater.SpawnParticle(pos + ang:Forward() * emul * Vector(6, 6, 0), ang:Forward() * fmul)
+			gwater.SpawnParticle(pos + ang:Forward() * emul * Vector(6, 6, 0), ang:Forward() * fmul, drawColor)
 		end
 	end
 	
