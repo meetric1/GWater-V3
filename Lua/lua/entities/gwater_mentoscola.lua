@@ -96,13 +96,18 @@ function ENT:Think()
 	if self:GetNWBool("Running") then
 		local pos = self:LocalToWorld(Vector(0, 0, 5))
 		local ang = self:GetUp()
+
+		local drawColor = self:GetColor():ToVector()
+		if drawColor == Vector(1, 1, 1) then
+			drawColor = Vector(0.75, 1, 2)
+		end
 		
 		for i=0, 5 - dt do
-			gwater.SpawnParticle(pos + VectorRand(-8, 8), VectorRand(-1, 1) * 25 * (1 - dt / die))
+			gwater.SpawnParticle(pos + VectorRand(-8, 8), VectorRand(-1, 1) * 25 * (1 - dt / die), drawColor)
 		end
 		
 		for i=0, 20 * (1 - dt / die) do
-			gwater.SpawnParticle(self:LocalToWorld(Vector(0, 0, math.random(7, 20))), ang * 200 * (1 - dt / die))
+			gwater.SpawnParticle(self:LocalToWorld(Vector(0, 0, math.random(7, 20))), ang * 200 * (1 - dt / die), drawColor)
 		end
 	end
 	

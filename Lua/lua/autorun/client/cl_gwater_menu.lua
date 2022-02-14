@@ -102,6 +102,12 @@ end
 
 local psound = surface.PlaySound
 
+local function updateWaterColor(c)
+	net.Start("GWATER_REQUESTCOLOR")
+		net.WriteVector(c)
+	net.SendToServer()
+end
+
 local function quickControlsTab(tabs)
 	local quickcontrol = vgui.Create("DPanel", tabs)
 	local qcontroltab = tabs:AddSheet("Quick Control", quickcontrol, "icon16/wrench_orange.png").Tab
@@ -207,6 +213,7 @@ hook.Add("Tick", "GWater_Rainbow_Color_EE", function()
 		local col = HSVToColor(CurTime() * 100 % 360, 1, 1)
 		local vec = Vector(col.r, col.g, col.b) / 127.5
 		gwater.Material:SetVector("$refracttint", vec)
+		updateWaterColor(vec)	--eh fuckit im lazy, just send this every tick I guess
 	end
 end)
 
@@ -231,7 +238,7 @@ local function renderingTab(tabs)
 	watercol:SetSize(150, 100)
 	watercol.PaintOver = GenericPaintNBG
 	watercol.Paint = function(self, w, h)
-		local v = gwater.Material:GetVector("$color") or gwater.Material:GetVector("$refracttint") or Vector(1, 1, 1)
+		local v = gwater.Material:GetVector("$refracttint") or gwater.Material:GetVector("$color") or Vector(1, 1, 1)
 		surface.SetFont("GWaterThin")
 		surface.SetTextColor(200, 200, 200)
 		surface.SetTextPos(24, 2)
@@ -275,6 +282,8 @@ local function renderingTab(tabs)
 		local vis = (vec * 127.5 == Vector(69, 69, 69))
 		rainbowcheckbox:SetVisible(vis)
 		rainbowEasterEgg = vis
+
+		updateWaterColor(vec)
 	end
 	
 	local greens = vgui.Create("DNumSlider", rendering)
@@ -294,6 +303,8 @@ local function renderingTab(tabs)
 		local vis = (vec *127.5 == Vector(69, 69, 69))
 		rainbowcheckbox:SetVisible(vis)
 		rainbowEasterEgg = vis
+
+		updateWaterColor(vec)
 	end
 	
 	local blues = vgui.Create("DNumSlider", rendering)
@@ -313,6 +324,8 @@ local function renderingTab(tabs)
 		local vis = (vec * 127.5 == Vector(69, 69, 69))
 		rainbowcheckbox:SetVisible(vis)
 		rainbowEasterEgg = vis
+
+		updateWaterColor(vec)
 	end
 	
 	local refract = vgui.Create("DNumSlider", rendering)
@@ -552,15 +565,12 @@ local function gwaterTab(tabs)
 			gwater.SetConfig("gravityX", 0)
 			gwater.SetConfig("gravityY", 0)
 			gwater.SetConfig("gravityZ", -9.8)
-			gwater.Materials["water"]:SetVector("$refracttint", Vector(0.75, 1, 2))
 			
 			timer.Remove("gwater_snowmode")
 		else --turn on snowy stuff xd
 			gwater.SetConfig("maxAcceleration", 64)
 			gwater.SetConfig("adhesion", 0.08)
 			gwater.SetConfig("gravityZ", -0.8)
-			gwater.Materials["water"]:SetVector("$refracttint", Vector(2, 2, 2))
-			gwater.Material = gwater.Materials["water"]
 			
 			timer.Create("gwater_snowmode", 0.1, 0, function()
 				gwater.SetConfig("gravityX", math.sin(CurTime() * 1.2) * 2)
@@ -574,7 +584,7 @@ local function gwaterTab(tabs)
 								
 					local vel = VectorRand(-25, 25)
 				
-					gwater.SpawnParticle(pos, vel)
+					gwater.SpawnParticle(pos, vel, Vector(5, 5, 5))
 				end
 			end)
 			

@@ -28,12 +28,48 @@ local sentWhitelist = {
 
 }
 
+
+local dist = -1
+local particleIndex = -1
+local initialMass
+local function handlePhysguns()
+	-- handle physgun
+	if LocalPlayer():IsValid() and LocalPlayer():GetActiveWeapon():IsValid() and LocalPlayer():GetActiveWeapon():GetClass() == "weapon_physgun" then
+		local mouseHeld = LocalPlayer():KeyDown(IN_ATTACK2)
+		local fwd = LocalPlayer():EyePos() + LocalPlayer():EyeAngles():Forward() * dist
+
+		if dist == -1 and mouseHeld then
+			local newDist, pos, index = gwater.TraceLine(LocalPlayer():EyePos(), LocalPlayer():EyeAngles():Forward())
+			if newDist > 0 then 
+				initialMass = gwater.SetParticlePos(index, fwd, 1 / 50000)
+				particleIndex = index
+				dist = newDist
+			end
+		end
+		
+		if dist > 0 then
+			if mouseHeld then
+				gwater.SetParticlePos(particleIndex, fwd, 1 / 50000)
+			else
+				gwater.SetParticlePos(particleIndex, fwd, initialMass)
+				dist = -1
+			end
+		end
+	end
+
+	--handle gravgun
+	local plys = ents.FindByClass("player")
+	for k, v in ipairs(plys) do
+		if v:IsValid() and v:GetActiveWeapon():IsValid() and v:GetActiveWeapon():GetClass() == "weapon_physcannon" and v:KeyDown(IN_ATTACK2) then
+			gwater.ApplyForceOutwards(v:EyePos() + v:EyeAngles():Forward() * 125 + Vector(0, 0, 10), -15, 100, false);
+		end
+	end
+end
+
 local function addPropMesh(prop)
 	if #gwater.Meshes > MAX_COLLISIONS then print("[GWATER]: Max mesh limit reached!") return end
 	if not prop or not prop:IsValid() then return end
 
-	--SENT handling
-	--if SENT, ignore the sent from ignoreSENTs and process SENT if physobj is valid.
 	if prop:IsScripted() and prop:GetPhysicsObject():IsValid() then
 		for k, convex in pairs(prop:GetPhysicsObject():GetMeshConvexes()) do
 			local finalMesh = {}
@@ -43,17 +79,12 @@ local function addPropMesh(prop)
 			gwater.AddConvexMesh(finalMesh, prop:OBBMins() - margin, prop:OBBMaxs() + margin, prop:GetPos(), prop:GetAngles())
 			table.insert(gwater.Meshes, prop)
 		end
-		--return function early, it's finished, no need for rest of checks.
 		return
 	end
 
-	--Only use brush surfaces for brushes
-	--If entity is a whitelisted brush
 	if allowedBrushEntities[prop:GetClass()] then
 		local finalMesh = {}
-		--get all surfaces
 		local surfaces = prop:GetBrushSurfaces()
-		--skip if brush has no surfaces.
 		if #surfaces == 0 then return end
 		--combine all brush surfaces into a convex shape.
 		for k, surfinfo in pairs(surfaces) do
@@ -66,13 +97,11 @@ local function addPropMesh(prop)
 				finalMesh[len + 3] = vertices[i + 2]
 			end
 		end
-		--only add brushes with a relevant shape, adding no triangles kind of is like... uhhhhhhhh dont
-		--skip if no triangles, should never be reached, but just an extra measure to prevent a crash.
+
 		if #finalMesh == 0 then return end
 		--add this concave shape, it may actually have holes frankly
 		gwater.AddConcaveMesh(finalMesh, prop:OBBMins() - margin, prop:OBBMaxs() + margin, prop:GetPos(), prop:GetAngles())
 		table.insert(gwater.Meshes, prop)
-		--return function early, it's finished, no need for rest of checks.
 		return
 	end
 
@@ -118,14 +147,12 @@ local function addPropMesh(prop)
 end
 
 hook.Add("GWaterInitialized", "GWater.InitFunctions", function()
-	print("fuCK\n\n\n\n\n")
 	if not gwater or not gwater.HasModule then return end
-	print("AAAEAEWEAE")
 	--removes a prop from the collisison queue, allows it's collision to be re-evaluated with the function below this one
 	function gwater.InvalidateCollision(ent)
 		if not (ent and ent:IsValid()) then return end
 		if not (ent.GWATER_UPLOADED and sentQueue[ent:EntIndex()]) then return end
-		--frankly we gotta search through this table... dammit
+
 		for k, v in ipairs(gwater.Meshes) do
 			if ent == v then
 				ent.GWATER_UPLOADED = nil
@@ -166,6 +193,7 @@ hook.Add("GWaterPostInitialized", "GWater.Collision", function()
 	for k, v in ipairs(props) do
 		gwater.AddColliderToQueue( v )
 	end
+
 	--adds props using OnEntityCreated hook
 	hook.Add("OnEntityCreated", "GWater.EntityHandler", function(ent)
 		gwater.AddColliderToQueue( ent )
@@ -173,19 +201,18 @@ hook.Add("GWaterPostInitialized", "GWater.Collision", function()
 
 	--update props, forcefields, and queue
 	hook.Add("Think", "GWATER_UPDATE_COLLISION", function()
+		-- physgun pickup
+		handlePhysguns()
+
 		--SENT queue, to make sure the physprop is valid.
-		--This acts as a delayed buffer, as SENTs sometimes take time before their physprop is valid, such as delays caused by networking.
 		for k, v in pairs(sentQueue) do
-			--just remove from queue if entity is not valid
 			if not v:IsValid() then sentQueue[k] = nil continue end
-			--add SENT to propqueue when physobject is valid
-			--also add the SENT to the propqueue if sentMaxAttempts has been reached
 			if ( v.GWaterPhysAttempts == sentMaxAttempts ) or v:GetPhysicsObject():IsValid() then
 				sentQueue[k] = nil
 				table.insert(propQueue, v)
 				v.GWaterPhysAttempts = nil
 				v.GWATER_UPLOADED = true
-			else --retry, add 1 to attempts count
+			else 
 				v.GWaterPhysAttempts = (v.GWaterPhysAttempts or 0) + 1
 			end
 		end
@@ -197,10 +224,7 @@ hook.Add("GWaterPostInitialized", "GWater.Collision", function()
 				table.remove(gwater.Meshes, k)
 				continue
 			end
-			--always update SENTs, their velocity is often broken on the client
-			if v:IsScripted() or allowedBrushEntities[v:GetClass()] or (v:GetVelocity() ~= Vector()) then
-				gwater.SetMeshPos(v:GetPos(), v:GetAngles(), k)
-			end
+			gwater.SetMeshPos(v:GetPos(), v:GetAngles(), k)
 		end
 
 		--update forcefields (blackholes)

@@ -25,8 +25,9 @@ for k, v in ipairs(xyz) do
 	function ENT:SpawnFunction(ply, tr, ClassName)
 		net.Start("GWATER_SPAWNCUBE")
 			net.WriteEntity(ply)
-			net.WriteVector(tr.HitPos + Vector(0, 0, v.z * 6))
+			net.WriteVector(tr.HitPos)
 			net.WriteVector(v)
+			net.WriteVector(ply.GWATER_COLOR or Vector(0.75, 1, 2))
 		net.Broadcast()
 
 		return nil

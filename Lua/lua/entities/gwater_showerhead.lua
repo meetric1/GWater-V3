@@ -74,8 +74,13 @@ function ENT:Think()
 		local ppe = self:GetParticlesPerEmission()
 		local fmul = self:GetForceMultiplier()
 
+		local drawColor = self:GetColor():ToVector()
+		if drawColor == Vector(1, 1, 1) then
+			drawColor = Vector(0.75, 1, 2)
+		end
+
 		for i = 0, ppe do
-			gwater.SpawnParticle(pos + VectorRand(-8 + ppe, 8 - ppe), ang:Forward() * 25 * fmul + vel / 6)
+			gwater.SpawnParticle(pos + VectorRand(-8 + ppe, 8 - ppe), ang:Forward() * 25 * fmul + vel / 6, drawColor)
 		end
 	end
 	

@@ -1,13 +1,10 @@
 AddCSLuaFile()
 
---do not make cloth appear in multiplayer
-if not game.SinglePlayer() then return end
-
 ENT.Type = "anim"
 ENT.Base = "base_gmodentity"
 
 ENT.Category		= "GWater"
-ENT.PrintName		= "Render_Mesh"
+ENT.PrintName		= "Cloth"
 ENT.Author			= "Mee & AndrewEathan (with help from PotatoOS)"
 ENT.Purpose			= ""
 ENT.Instructions	= ""
@@ -20,7 +17,8 @@ function ENT:Initialize()
 	if CLIENT then
 		self:SetRenderBounds(Vector(-32768, -32768, -32768), Vector(32768, 32768, 32768))	-- just make it render anywhere
 		if gwater and gwater.HasModule then
-			gwater.SpawnCloth(LocalPlayer():GetEyeTrace().HitPos + Vector(0, 0, gwater.GetRadius() * 5), 46, gwater.GetRadius() * 0.75, 2)
+			--gwater.SpawnRigidbody(LocalPlayer():GetEyeTrace().HitPos + Vector(0, 0, gwater.GetRadius() * 7), Vector(50, 2, 2), gwater.GetRadius())
+			gwater.SpawnCloth(LocalPlayer():GetEyeTrace().HitPos + Vector(0, 0, gwater.GetRadius() * 5), 46, gwater.GetRadius() * 0.75, 1)
 		end
 		self.ID = #renderMeshes + 1
 	end
@@ -32,13 +30,16 @@ end
 
 --update the mesh with the cloth data
 function ENT:GetRenderMesh()
+	self:SetPos(Vector())
+	self:SetAngles(Angle())
 	if gwater and gwater.HasModule then
 		return {Mesh = renderMeshes[self.ID], Material = gwater.Materials["z_cloth"]}
 	end
 end
 
---remove all particles and cloth sents because the c++ data is in an array
+--remove all cloth sents because the c++ data is in an array
 --this can maybe be edited if I was smart and could manage data in a 1D array
+--I tried for hours to try and think of a solution, but I couldnt
 function ENT:OnRemove()
 	if CLIENT then
 		timer.Simple(0, function()
@@ -46,7 +47,7 @@ function ENT:OnRemove()
 				for k, v in ipairs(renderMeshes) do
 					v:Destroy()
 				end
-				gwater.RemoveAll()
+				gwater.RemoveAllCloth()
 				table.Empty(renderMeshes)
 			end
 		end)
@@ -60,9 +61,12 @@ end
 if SERVER then return end
 
 -- create the render mesh for cloth entities
+local time = 0
 hook.Add("PostDrawTranslucentRenderables", "GWATER_RENDER_CLOTH", function(drawingDepth, drawingSkybox, isDraw3DSkybox)
 	if not gwater or not gwater.HasModule then return end
 	if gwater:GetTimescale() == 0 then return end
+	time = time % (1 / gwater.GetConfig("simFPS") * 120) + 1
+	if time != 1 then return end
 
 	local positions = gwater.GetClothData()	-- this is expensive as fuck and it would probably help if we updated the mesh every other frame
 	clothCount = #positions

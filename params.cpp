@@ -5,7 +5,7 @@
 #include "declarations.h"
 #include <float.h>
 
-
+float simFPS = 60.f;
 void FLEX_API::initParams() {
 	flexParams->gravity[0] = 0.0f;
 	flexParams->gravity[1] = 0.0f;
@@ -87,10 +87,7 @@ void FLEX_API::initParams() {
 	flexMap["staticFriction"] = &(flexParams->staticFriction);
 	flexMap["particleFriction"] = &(flexParams->particleFriction); // scale friction between particles by default
 
-	gwaterMap["simulationFramerate"] = 60;
-
-	//its an int
-	//flexMap["NUM_ITERATIONS"] = &(flexParams->numIterations);
+	flexMap["simFPS"] = &simFPS;
 }
 
 void FLEX_API::initParamsRadius(float r) {
@@ -110,15 +107,6 @@ void FLEX_API::updateParam(std::string str, float n) {
 	}
 	catch (std::exception e) {
 		GlobalLUA->ThrowError(("Invalid parameter \"" + str + "\"!").c_str());
-	}
-}
-
-void FLEX_API::updateExtraParam(std::string str, float n) {
-	try {
-		gwaterMap.at(str) = n;
-	}
-	catch (std::exception e) {
-		GlobalLUA->ThrowError(("Invalid extra parameter \"" + str + "\"!").c_str());
 	}
 }
 

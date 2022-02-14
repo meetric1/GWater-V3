@@ -10,10 +10,10 @@ GarrysMod::Lua::ILuaBase* GlobalLUA;
 
 std::mutex* bufferMutex;
 float4* particleBufferHost;
+float3* velocityBufferHost;
 
 float simTimescale = 1;
 int ParticleCount = 0;
-int SpringCount = 0;
 int PropCount = 0;
 bool SimValid = true;
 int RenderDistance = pow(5000, 2);
@@ -47,7 +47,7 @@ LUA_FUNCTION(RenderParticles) {
 	LUA->CheckType(-5, Type::Vector);	//eye pos
 	LUA->CheckType(-6, Type::Number);	//override
 
-	if (ParticleCount < 1) return 1;
+	if (ParticleCount < 1) return 0;
 
 	float3 directionArray[4];
 	for (int i = 0; i < 4; i++)
@@ -63,17 +63,17 @@ LUA_FUNCTION(RenderParticles) {
 	LUA->Pop(6);
 	LUA->PushSpecial(SPECIAL_GLOB);
 
-	int numParticlesRendered = 0;
-
 	float4 particlePos;	// Reassign these, dont redeclare them
 	float3 particleMinusPos;
 	Vector gmodPos;
+	Vector gmodColor;
+	Vector gmodLastColor;
 
 	//we need to optimize the crap out of this because it can run 65 thousand times per frame!
 	for (int i = 0; i < ParticleCount; i++) {
 		particlePos = particleBufferHost[i];
 
-		if (particlePos.w != 0.5) continue;
+		if (particlePos.w != 0.5f) continue;
 
 		particleMinusPos = float3(particlePos) - eyePos;
 
@@ -91,33 +91,43 @@ LUA_FUNCTION(RenderParticles) {
 		gmodPos.y = particlePos.y;
 		gmodPos.z = particlePos.z;
 
+		// if the color is different (or the first one) then we should update it
+		gmodColor = FLEX_Simulation->particleColors[i];
+		bool shouldChange = (gmodColor.x != gmodLastColor.x || gmodColor.y != gmodLastColor.y || gmodColor.z != gmodLastColor.z);
+		if (shouldChange) {
+			LUA->GetField(-1, "GWater_SetDrawColor");
+			LUA->PushVector(gmodColor);
+			LUA->Call(1, 0);
+		}
+		gmodLastColor = gmodColor;
+
 		//draws the sprite
 		LUA->GetField(-1, overrideString);
 		LUA->PushVector(gmodPos);
 		LUA->PushNumber(particleRadius);
 		LUA->Call(2, 0);	//pops literally everything above except _G
-
-		numParticlesRendered++;
 	}
 
 	LUA->Pop(1); //pop _G from stack
-	LUA->PushNumber(numParticlesRendered);
 
-	return 1;
+	return 0;
 }
 
+//Gets particles near a position in radius
 LUA_FUNCTION(ParticlesNear) {
 	//get headpos
 	LUA->CheckType(1, Type::Vector);
 	LUA->CheckType(2, Type::Number);
 
+	float4 particlePos;
 	float3 pos = float3(LUA->GetVector(1));
-	float particleRadius = (float)pow(FLEX_Simulation->radius * LUA->GetNumber(2), 2);
+	float particleRadius = (float)pow(LUA->GetNumber(2), 2);
 	int particlesBeside = 0;
 
 	for (int i = 0; i < ParticleCount; i++) {
-		float3 thisPos = float3(particleBufferHost[i]);
-		if (DistanceSquared(thisPos, pos) < particleRadius) {
+		particlePos = particleBufferHost[i];
+		if (particlePos.w != 0.5) continue;
+		if (DistanceSquared(float3(particlePos), pos) < particleRadius) {
 			particlesBeside++;
 		}
 	}
@@ -151,6 +161,31 @@ LUA_FUNCTION(GetData) {
 		LUA->PushNumber((double)i + 1);
 		LUA->PushVector(gmodPos);
 		LUA->SetTable(-3);
+	}
+
+	return 1;
+}
+
+LUA_FUNCTION(GetSkewedData) {
+	LUA->CreateTable();
+
+	//loop thru all particles & add to table (on stack)
+	float4 thisPos;
+	Vector gmodPos;
+	int n = 0;
+	for (int i = 0; i < ParticleCount; i++) {
+		if (particleBufferHost[i].w != 0.5) continue;
+
+		thisPos = particleBufferHost[i];
+		gmodPos.x = thisPos.x;
+		gmodPos.y = thisPos.y;
+		gmodPos.z = thisPos.z;
+
+		LUA->PushNumber((double)n + 1);
+		LUA->PushVector(gmodPos);
+		LUA->SetTable(-3);
+
+		n++;
 	}
 
 	return 1;
@@ -198,6 +233,81 @@ LUA_FUNCTION(RemoveAll) {
 	return 0;
 }
 
+LUA_FUNCTION(RemoveAllCloth) {
+	bufferMutex->lock();
+
+	if (!SimValid) {
+		bufferMutex->unlock();
+		return 0;
+	}
+
+	FLEX_Simulation->removeAllCloth();
+	bufferMutex->unlock();
+
+	return 0;
+}
+
+//sphere intersection code for function below (gotta pick up particles somehow)
+float sphereIntersection(float3 center, float radius, float3 origin, float3 direction) {
+	float3 oc = origin - center;
+	float a = Dot(direction, direction);
+	float b = 2.f * Dot(oc, direction);
+	float c = Dot(oc, oc) - radius * radius;
+	float discriminant = b * b - 4 * a * c;
+	if (discriminant < 0) {
+		return -1.f;
+	}
+	else {
+		return (-b - sqrt(discriminant)) / (2.f * a);
+	}
+}
+
+//sets radius of particles
+LUA_FUNCTION(TraceLine) {
+	LUA->CheckType(1, Type::Vector);
+	LUA->CheckType(2, Type::Vector);
+
+	int particleIndex = -1;
+	float dist = -1.f;
+	float r = FLEX_Simulation->radius / 2.f;
+	float4 pos;
+	float3 rayOrigin = LUA->GetVector(1);
+	float3 rayDirection = LUA->GetVector(2);
+
+	for (int i = 0; i < ParticleCount; i++) {
+		float particleHit = sphereIntersection(particleBufferHost[i], r, rayOrigin, rayDirection);
+		if ((particleHit > 0.f && particleHit < dist) || dist < 0.f) {
+			dist = particleHit;
+			pos = particleBufferHost[i];
+			particleIndex = i;
+		}
+	}
+
+	Vector gmodVector;
+	gmodVector.x = pos.x;
+	gmodVector.y = pos.y;
+	gmodVector.z = pos.z;
+
+	LUA->Pop(2);
+	LUA->PushNumber(dist);
+	LUA->PushVector(gmodVector);
+	LUA->PushNumber(particleIndex);
+	return 3;
+}
+
+LUA_FUNCTION(SetParticlePos) {
+	LUA->CheckType(1, Type::Number);
+	LUA->CheckType(2, Type::Vector);
+	LUA->CheckType(3, Type::Number);
+
+	float invMass = FLEX_Simulation->editParticle(LUA->GetNumber(1), LUA->GetVector(2), float3(), LUA->GetNumber(3));
+
+	LUA->Pop(2);
+	LUA->PushNumber(invMass);
+	return 1;
+}
+
+
 //sets radius of particles
 LUA_FUNCTION(SetRadius) {
 	LUA->CheckType(1, Type::Number);
@@ -214,26 +324,15 @@ LUA_FUNCTION(SetRadius) {
 }
 
 LUA_FUNCTION(GetRadius) {
-	LUA->PushNumber(FLEX_Simulation->flexParams->radius);
+	LUA->PushNumber(FLEX_Simulation->radius);
 	return 1;
 }
-
 
 //A: sets max particles, this can't actually change the 65535 hard limit without editing the cpp
 //so this will just change the limit that is checked by the code, and additionally erase any extra particles when maxparticles < particlecount 
 LUA_FUNCTION(SetMaxParticles) {
 	LUA->CheckType(1, Type::Number);
-	int count = (float)LUA->GetNumber();
-
-	if (count > 65536 || !(count > -1)) {
-		LUA->ThrowError(("Tried to set GWater max particles to " + std::to_string(count) + "! (0 min, 65536 max)").c_str());
-		return 0;
-	}
-
-	FLEX_Simulation->flexSolverDesc.maxParticles = count;
-	if (ParticleCount > count) ParticleCount = count;
-	FLEX_Simulation->cullParticles();
-
+	FLEX_Simulation->SetParticleLimit((int)LUA->GetNumber());
 	LUA->Pop();
 	return 0;
 }
@@ -243,8 +342,6 @@ LUA_FUNCTION(GetMaxParticles) {
 	LUA->PushNumber(FLEX_Simulation->flexSolverDesc.maxParticles);
 	return 1;
 }
-
-
 
 //stops simulation
 LUA_FUNCTION(DeleteSimulation) {
@@ -264,12 +361,15 @@ LUA_FUNCTION(SpawnParticle) {
 	//check to see if they are both vectors
 	LUA->CheckType(1, Type::Vector); // pos
 	LUA->CheckType(2, Type::Vector); // vel
+	LUA->CheckType(3, Type::Vector); // color
+
 
 	//gmod Vector and fleX float4
 	Vector gmodPos = LUA->GetVector(1);	//pos
 	Vector gmodVel = LUA->GetVector(2);	//vel
+	Vector gmodColor = LUA->GetVector(3);	//color
 
-	FLEX_Simulation->addParticle(gmodPos, gmodVel);
+	FLEX_Simulation->addParticle(gmodPos, gmodVel, gmodColor);
 
 	//remove vel and pos from stack
 	LUA->Pop(2);	
@@ -286,53 +386,43 @@ LUA_FUNCTION(SpawnCloth) {
 	bufferMutex->lock();
 	if (!SimValid) {
 		bufferMutex->unlock();
-		return 0;
+		return 1;
 	}
 
-	float num = 1.f;
-	if (LUA->GetNumber(5) != Type::Nil) {
-		num = LUA->GetNumber(5);
+	float num = LUA->GetNumber(5);
+	if (LUA->GetNumber(5) <= 0) {	//getnumber returns 0 on fail
+		num = 1.f;
 	}
 	
 	FLEX_Simulation->addCloth(LUA->GetVector(1), LUA->GetNumber(2), LUA->GetNumber(3), LUA->GetNumber(4), num);
 
 	bufferMutex->unlock();
-	LUA->Pop();
-
-	return 0;
-}
-
-LUA_FUNCTION(SpawnCube) {
-	//check to see if they are both vectors
-	LUA->CheckType(1, Type::Vector); // pos
-	LUA->CheckType(2, Type::Vector); // size
-	LUA->CheckType(3, Type::Number); // size apart (usually radius)
-	LUA->CheckType(4, Type::Vector); // vel
-
-	//gmod Vector
-	Vector gmodPos = LUA->GetVector(1);		//pos
-	Vector gmodSize = LUA->GetVector(2);	//size
-	float size = LUA->GetNumber(3);			//size apart
-	Vector gmodVel = LUA->GetVector(4);		//vel
-
-	for (int z = -gmodSize.z; z <= gmodSize.z; z++) {
-		for (int y = -gmodSize.y; y <= gmodSize.y; y++) {
-			for (int x = -gmodSize.x; x <= gmodSize.x; x++) {
-				Vector offset;
-				offset.x = gmodPos.x + x * size;
-				offset.y = gmodPos.y + y * size;
-				offset.z = gmodPos.z + z * size;
-
-				FLEX_Simulation->addParticle(offset, gmodVel);
-			}
-		}
-	}
-
-	//remove pos, size, size, and vel
 	LUA->Pop(4);
 
 	return 0;
 }
+
+LUA_FUNCTION(SpawnRigidbody) {
+	//check to see if they are both vectors
+	LUA->CheckType(1, Type::Vector); // pos
+	LUA->CheckType(2, Type::Vector); // width
+	LUA->CheckType(3, Type::Number); // how close apart particles are
+	//LUA->CheckType(4, Type::Number); // mass
+	bufferMutex->lock();
+	if (!SimValid) {
+		bufferMutex->unlock();
+		return 0;
+	}
+
+	float3 rigidRes = LUA->GetVector(2);
+	FLEX_Simulation->addRigidbody(LUA->GetVector(1), rigidRes.x, rigidRes.y, rigidRes.z, LUA->GetNumber(3), float3(), 10.f);
+
+	bufferMutex->unlock();
+	LUA->Pop(3);
+
+	return 0;
+}
+
 
 LUA_FUNCTION(SpawnSphere) {
 	//check to see if they are both vectors
@@ -346,6 +436,7 @@ LUA_FUNCTION(SpawnSphere) {
 	float radius = LUA->GetNumber(2);		//radius
 	float size = LUA->GetNumber(3);			//size apart
 	Vector gmodVel = LUA->GetVector(4);		//vel
+	Vector gmodColor = LUA->GetVector(5);	//color
 
 	for (int z = -radius; z <= radius; z++) {
 		for (int y = -radius; y <= radius; y++) {
@@ -357,7 +448,7 @@ LUA_FUNCTION(SpawnSphere) {
 				offset.y = gmodPos.y + y * size;
 				offset.z = gmodPos.z + z * size;
 
-				FLEX_Simulation->addParticle(offset, gmodVel);
+				FLEX_Simulation->addParticle(offset, gmodVel, gmodColor);
 			}
 		}
 	}
@@ -369,18 +460,21 @@ LUA_FUNCTION(SpawnSphere) {
 }
 
 //andreweathan
-LUA_FUNCTION(SpawnCubeExact) {
+LUA_FUNCTION(SpawnCube) {
 	//check to see if they are both vectors
 	LUA->CheckType(1, Type::Vector); // pos
 	LUA->CheckType(2, Type::Vector); // size
 	LUA->CheckType(3, Type::Number); // size apart (usually radius)
 	LUA->CheckType(4, Type::Vector); // vel
+	LUA->CheckType(5, Type::Vector); // color
+
 
 	//gmod Vector and fleX float4
 	Vector gmodPos = LUA->GetVector(1);		//pos
 	Vector gmodSize = LUA->GetVector(2);	//size
 	float size = LUA->GetNumber(3);			//size apart
 	Vector gmodVel = LUA->GetVector(4);		//vel
+	Vector gmodColor = LUA->GetVector(5);	//color
 
 	gmodSize.x /= 2;
 	gmodSize.y /= 2;
@@ -394,7 +488,7 @@ LUA_FUNCTION(SpawnCubeExact) {
 				newPos.y = (y * size) + gmodPos.y;
 				newPos.z = (z * size) + gmodPos.z;
 
-				FLEX_Simulation->addParticle(newPos, gmodVel);
+				FLEX_Simulation->addParticle(newPos, gmodVel, gmodColor);
 			}
 		}
 	}
@@ -641,25 +735,9 @@ LUA_FUNCTION(SetConfig) {
 	return 0;
 }
 
-LUA_FUNCTION(SetExtraConfig) {
-	LUA->CheckType(1, Type::String); //ID of param
-	LUA->CheckType(2, Type::Number);
-
-	FLEX_Simulation->updateExtraParam(LUA->GetString(1), LUA->GetNumber(2));
-
-	LUA->Pop(2);
-	return 0;
-}
-
 LUA_FUNCTION(GetConfig) {
 	LUA->CheckType(1, Type::String); //ID of param
 	LUA->PushNumber(*FLEX_Simulation->flexMap[LUA->GetString()]);
-	return 1;
-}
-
-LUA_FUNCTION(GetExtraConfig) {
-	LUA->CheckType(1, Type::String); //ID of param
-	LUA->PushNumber(FLEX_Simulation->gwaterMap[LUA->GetString()]);
 	return 1;
 }
 
@@ -700,28 +778,23 @@ LUA_FUNCTION(GetParticleCount) {
 	return 1;
 }
 
-void PopulateFunctions(ILuaBase* LUA);
-
-LUA_FUNCTION(PopulateGWaterFunctions) {
-	PopulateFunctions(LUA);
-	return 0;
-}
-
 void PopulateFunctions(ILuaBase* LUA) {
 	LUA->PushSpecial(SPECIAL_GLOB);
 	LUA->CreateTable();
 
 	//particle-related
 	ADD_FUNC(SpawnParticle, "SpawnParticle");
-	ADD_FUNC(SpawnCube, "SpawnCube");
 	ADD_FUNC(SpawnSphere, "SpawnSphere");
-	ADD_FUNC(SpawnCubeExact, "SpawnCubeExact");
+	ADD_FUNC(SpawnCube, "SpawnCube");
 	ADD_FUNC(SpawnCloth, "SpawnCloth");
+	ADD_FUNC(SpawnRigidbody, "SpawnRigidbody");
 	ADD_FUNC(CleanLostParticles, "CleanLostParticles");
 	ADD_FUNC(CleanLoneParticles, "CleanLoneParticles");
 	ADD_FUNC(SetMaxParticles, "SetMaxParticles");
 	ADD_FUNC(GetMaxParticles, "GetMaxParticles");
 	ADD_FUNC(GetParticleCount, "GetParticleCount");
+	ADD_FUNC(TraceLine, "TraceLine");
+	ADD_FUNC(SetParticlePos, "SetParticlePos")
 
 	//meshes
 	ADD_FUNC(AddConvexMesh, "AddConvexMesh");
@@ -733,8 +806,10 @@ void PopulateFunctions(ILuaBase* LUA) {
 	//rendering & data transfer
 	ADD_FUNC(RenderParticles, "RenderParticles");
 	ADD_FUNC(RemoveAll, "RemoveAll");
+	ADD_FUNC(RemoveAllCloth, "RemoveAllCloth");
 	ADD_FUNC(ParticlesNear, "ParticlesNear");
 	ADD_FUNC(GetData, "GetData");
+	ADD_FUNC(GetSkewedData, "GetSkewedData");
 	ADD_FUNC(GetClothData, "GetClothData");
 	ADD_FUNC(SetRenderDistance, "SetRenderDistance");
 	ADD_FUNC(GetRenderDistance, "GetRenderDistance");
@@ -749,20 +824,16 @@ void PopulateFunctions(ILuaBase* LUA) {
 
 	//param funcs
 	ADD_FUNC(SetRadius, "SetRadius");
-	ADD_FUNC(SetConfig, "SetConfig");
-	ADD_FUNC(SetExtraConfig, "SetExtraConfig");
-
 	ADD_FUNC(GetRadius, "GetRadius");
+	
+	ADD_FUNC(SetConfig, "SetConfig");
 	ADD_FUNC(GetConfig, "GetConfig");
-	ADD_FUNC(GetExtraConfig, "GetExtraConfig");
 
 	//extras
-	ADD_FUNC(DeleteSimulation, "DeleteSimulation");
 	ADD_FUNC(Blackhole, "Blackhole");
 	ADD_FUNC(GetModuleVersion, "GetModuleVersion");
 	ADD_FUNC(SetTimescale, "SetTimescale");
 	ADD_FUNC(GetTimescale, "GetTimescale");
-	ADD_FUNC(PopulateGWaterFunctions, "PopulateGWaterFunctions");
 
 	LUA->SetField(-2, "gwater");
 	LUA->Pop(); //remove _G
