@@ -1,4 +1,4 @@
-# GWATER  [![made with - mee++](https://img.shields.io/badge/made_with-mee%2B%2B-2ea44f)](https://)  
+# GWATER v1.3  [![made with - mee++](https://img.shields.io/badge/made_with-mee%2B%2B-2ea44f)](https://)  
 This is the repository for the GWater source code and its binary module releases!  
 Remember, you also need the workshop addon for this to work! https://steamcommunity.com/sharedfiles/filedetails/?id=2700933866  
 If you're looking to install the GWater module, you can watch this tutorial: https://www.youtube.com/watch?v=rlIyqdFmE8k  
@@ -20,7 +20,7 @@ Manual install method:
 **5.** Move the DLLs that *don't* start with `gmcl_` to the `GarrysMod` folder  
 **6.** Move the DLLs that *do* start with `gmcl_` (should be 2) to the lua/bin folder from above  
   
-If you're having trouble, ask us in [the server we developed GWater in](https://discord.gg/GSapxNQZaT)!  
+If you're having trouble, ask us in [the server we developed GWater in](https://discord.gg/vdsgHsFrx2)!  
 Please note that this addon is still in beta.  
 It *will* have bugs and issues, but we're working to fix them and make the experience better for you!  
 
