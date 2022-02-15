@@ -53,7 +53,9 @@ else
 			local pos = net.ReadVector()
 			local wsize = net.ReadVector()
 			local color = net.ReadVector()
+			local sum = wsize.x + wsize.y + wsize.z
 
+			if sum > 60 then return end
 			if not enablenetworking:GetBool() and owner != LocalPlayer() then return end
 
 			gwater.SpawnCube(pos + Vector(0, 0, gwater.GetRadius() * wsize.z), wsize, gwater.GetRadius() * 0.9, Vector(), color)
@@ -66,6 +68,8 @@ else
 			local pos = net.ReadVector()
 			local wsize = net.ReadInt(8)
 			local color = net.ReadVector()
+			local wsize = net.ReadInt(8)
+			if wsize > 20 then return end
 
 			if not enablenetworking:GetBool() and owner != LocalPlayer() then return end
 

@@ -123,17 +123,20 @@ LUA_FUNCTION(ParticlesNear) {
 	float3 pos = float3(LUA->GetVector(1));
 	float particleRadius = (float)pow(LUA->GetNumber(2), 2);
 	int particlesBeside = 0;
+	std::vector<int> range = std::vector<int>();
 
 	for (int i = 0; i < ParticleCount; i++) {
 		particlePos = particleBufferHost[i];
 		if (particlePos.w != 0.5) continue;
 		if (DistanceSquared(float3(particlePos), pos) < particleRadius) {
 			particlesBeside++;
+			range.push_back(i);
 		}
 	}
 
 	LUA->PushNumber(particlesBeside);
-	return 1;
+	for (int i : range) LUA->PushNumber(i);
+	return 1 + range.size();
 }
 
 LUA_FUNCTION(CleanLostParticles) {
@@ -609,12 +612,38 @@ LUA_FUNCTION(ApplyForce) {
 	// if it's linear then particles at Radius position get the weakest force while the closest to Pos get the strongest
 	// if it's not then every particle in that radius gets the same force
 
-	Vector pos = LUA->GetVector(1); 
+	Vector pos = LUA->GetVector(1);
 	Vector vel = LUA->GetVector(2);
 	float radius = LUA->GetNumber(3);
 	bool linear = LUA->GetBool(4);
 
 	FLEX_Simulation->applyForce(float3(pos), float3(vel), radius, linear);
+
+	return 0;
+}
+
+// i am so tired
+LUA_FUNCTION(ApplyForceRange) {
+	LUA->CheckType(1, Type::Vector); // pos
+	LUA->CheckType(2, Type::Vector); // vel
+	LUA->CheckType(3, Type::Number); // radius
+	LUA->CheckType(4, Type::Bool); // linear?
+	LUA->CheckType(5, Type::Number); // amount of particles
+	// if it's linear then particles at Radius position get the weakest force while the closest to Pos get the strongest
+	// if it's not then every particle in that radius gets the same force
+
+	std::vector<int> range = std::vector<int>();
+	Vector pos = LUA->GetVector(1);
+	Vector vel = LUA->GetVector(2);
+	float radius = LUA->GetNumber(3);
+	bool linear = LUA->GetBool(4);
+	int count = (int)LUA->GetNumber(5);
+
+	for (int i = 0; i < count; i++) {
+		range.push_back((int)LUA->GetNumber(6 + i));
+	}
+
+	FLEX_Simulation->applyForceRange(float3(pos), float3(vel), radius, linear, range);
 
 	return 0;
 }
@@ -634,6 +663,30 @@ LUA_FUNCTION(ApplyForceOutwards) {
 	bool linear = LUA->GetBool(4);
 
 	FLEX_Simulation->applyForceOutwards(pos, force, radius, linear);
+
+	return 0;
+}
+
+// this should help with physgun
+LUA_FUNCTION(ApplyForceOutwardsRange) {
+	LUA->CheckType(1, Type::Vector); // pos
+	LUA->CheckType(2, Type::Number); // force
+	LUA->CheckType(3, Type::Number); // radius
+	LUA->CheckType(4, Type::Bool); // linear?
+	LUA->CheckType(5, Type::Number); // amount of particles
+
+	std::vector<int> range = std::vector<int>();
+	Vector pos = LUA->GetVector(1);
+	float force = LUA->GetNumber(2);
+	float radius = LUA->GetNumber(3);
+	bool linear = LUA->GetBool(4);
+	int count = (int)LUA->GetNumber(5);
+
+	for (int i = 0; i < count; i++) {
+		range.push_back((int)LUA->GetNumber(6 + i));
+	}
+
+	FLEX_Simulation->applyForceOutwardsRange(pos, force, radius, linear, range);
 
 	return 0;
 }
@@ -820,7 +873,9 @@ void PopulateFunctions(ILuaBase* LUA) {
 	ADD_FUNC(SetForceFieldPos, "SetForceFieldPos");
 	ADD_FUNC(EditForceField, "EditForceField");
 	ADD_FUNC(ApplyForce, "ApplyForce");
+	ADD_FUNC(ApplyForceRange, "ApplyForceRange");
 	ADD_FUNC(ApplyForceOutwards, "ApplyForceOutwards");
+	ADD_FUNC(ApplyForceOutwardsRange, "ApplyForceOutwardsRange");
 
 	//param funcs
 	ADD_FUNC(SetRadius, "SetRadius");

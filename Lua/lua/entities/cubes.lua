@@ -15,12 +15,12 @@ for k, v in ipairs(xyz) do
 	local ENT = scripted_ents.Get("base_point")	
 	ENT.Type = "point"
 	ENT.Base = "base_point"
-	ENT.Spawnable = true
 	ENT.AdminOnly = false
 	ENT.PrintName = "Cube (" .. v.z .. ")"
 	ENT.Category = "GWater"
 	ENT.Author = "Mee & AndrewEathan (with help from PotatoOS)"
-
+	ENT.GWaterEntity = true
+	ENT.GWaterNotPhysical = true
 	
 	function ENT:SpawnFunction(ply, tr, ClassName)
 		net.Start("GWATER_SPAWNCUBE")
@@ -34,4 +34,9 @@ for k, v in ipairs(xyz) do
 	end
 
 	scripted_ents.Register(ENT, "gwater_cube_" .. v.z)
+	list.Set("gwater_entities", "gwater_cube_" .. v.z, {
+		Category = "Cubes",
+		Name = "Cube (" .. v.z .. ")",
+		Material = "entities/gwater_cube_" .. v.z .. ".png"
+	})
 end

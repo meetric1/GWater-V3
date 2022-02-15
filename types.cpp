@@ -2,7 +2,7 @@
 #include "declarations.h"
 
 #define MAX_COLLIDERS 4096
-#define MAX_PARTICLES 65536
+#define MAX_PARTICLES 250000
 
 //tysm this was very useful for debugging
 void gjelly_error(NvFlexErrorSeverity type, const char* msg, const char* file, int line) {
@@ -278,7 +278,7 @@ void FLEX_API::applyForce(float3 pos, float3 vel, float radius, bool linear) {
     bufferMutex->unlock();
 }
 
-void FLEX_API::applyForceOutwards(float3 pos, float strength, float radius, bool linear) {
+void FLEX_API::applyForceRange(float3 pos, float3 vel, float radius, bool linear, std::vector<int> range) {
     bufferMutex->lock();
     if (!SimValid) {
         bufferMutex->unlock();
@@ -289,8 +289,53 @@ void FLEX_API::applyForceOutwards(float3 pos, float strength, float radius, bool
 
     radius = radius * radius;
 
+    for (int i : range) {
+        float dist = DistanceSquared(simBuffers->particles[i], pos);
+        if (dist <= radius) {
+            float theta = 1 - dist / radius;
+            simBuffers->velocities[i] = simBuffers->velocities[i] + vel * (linear ? theta : 1);
+        }
+    }
+
+    unmapBuffers();
+    bufferMutex->unlock();
+}
+
+void FLEX_API::applyForceOutwards(float3 pos, float strength, float radius, bool linear) {
+    bufferMutex->lock();
+    if (!SimValid) {
+        bufferMutex->unlock();
+        return;
+    }
+
+    mapBuffers();
+
+    radius = radius * radius;
     int num = ParticleCount;
     for (int i = 0; i < num; i++) {
+        float dist = DistanceSquared(simBuffers->particles[i], pos);
+        if (dist <= radius) {
+            float theta = 1 - dist / radius;
+            float3 vel = normalize(pos - float3(simBuffers->particles[i])) * strength;
+            simBuffers->velocities[i] = simBuffers->velocities[i] - vel * (linear ? theta : 1);
+        }
+    }
+    unmapBuffers();
+
+    bufferMutex->unlock();
+}
+
+void FLEX_API::applyForceOutwardsRange(float3 pos, float strength, float radius, bool linear, std::vector<int> range) {
+    bufferMutex->lock();
+    if (!SimValid) {
+        bufferMutex->unlock();
+        return;
+    }
+
+    mapBuffers();
+
+    radius = radius * radius;
+    for (int i : range) {
         float dist = DistanceSquared(simBuffers->particles[i], pos);
         if (dist <= radius) {
             float theta = 1 - dist / radius;

@@ -154,7 +154,9 @@ public:
     int cleanLoneParticles();
 
     void applyForce(float3 pos, float3 vel, float radius, bool linear);
+    void applyForceRange(float3 pos, float3 vel, float radius, bool linear, std::vector<int> range);
     void applyForceOutwards(float3 pos, float strength, float radius, bool linear);
+    void applyForceOutwardsRange(float3 pos, float strength, float radius, bool linear, std::vector<int> range);
 
     // springs (flex provided functions)
     void CreateSpringGrid(float3 lower, int dx, int dy, float radius, int phase, float stretchStiffness, float mass);

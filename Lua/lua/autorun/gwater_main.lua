@@ -92,7 +92,6 @@ else
 						local endTime = CurTime()
 						local deltaTime = endTime - startTime
 						local text = "[GWATER]: Finished loading map convexes.\nLoaded "..#Vertices.."/"..TotalTris.." Vertices\nThis took "..string.format("%.3f Seconds",deltaTime)
-						print(text)
 
 						hook.Add("HUDPaint", "GWATER_MAPDL", function()
 							local timeSinceFinished = CurTime() - endTime
@@ -105,7 +104,6 @@ else
 
 						--Initialise after map download
 						hook.Run("GWaterPostInitialized")
-
 					end
 				end)
 			end
@@ -140,6 +138,7 @@ else
 				print("[GWATER]: Module version is v" .. gwater.GetModuleVersion() .. ", but i need v" .. gwater.GetModuleVersionForLua() .. "!")
 				LocalPlayer():ConCommand("gwater_menu")
 			else
+				gwater.ModuleVersionMismatch = false
 				print("[GWATER]: Successfully initialized!")
 			end
 
@@ -149,6 +148,8 @@ else
 			gwater.NetworkParticleCount = 0
 			hook.Run("GWaterInitialized")
 			hook.Run("GWaterPostInitialized")
+			gwater.Material = gwater.Materials["water"]
+			
 			if game.SinglePlayer() then
 				LocalPlayer():ConCommand("gwater_menu")
 			end
