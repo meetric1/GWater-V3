@@ -42,7 +42,7 @@ if SERVER then
 		ply.GWATER_COLOR = col
 	end)
 else
-	hook.Add("GWaterPostInitialized", "GWater.Networking", function()
+	hook.Add("GWaterInitialized", "GWater.Networking", function()
 		local enablenetworking = gwater.Convars["enablenetworking"]
 		local netlimit = gwater.Convars["maxnetparticles"]
 
@@ -63,16 +63,19 @@ else
 
 		--spheres
 		net.Receive("GWATER_SPAWNSPHERE", function()
+			print(111)
 			if not gwater then return end
 			local owner = net.ReadEntity()
 			local pos = net.ReadVector()
 			local wsize = net.ReadInt(8)
 			local color = net.ReadVector()
-			local wsize = net.ReadInt(8)
-			if wsize > 20 then return end
 
+			print(owner, pos, wsize, color)
+			
+			if wsize > 20 then return end
 			if not enablenetworking:GetBool() and owner != LocalPlayer() then return end
 
+			print("AAAAAA")
 			gwater.SpawnSphere(pos + Vector(0, 0, gwater.GetRadius() * wsize * 1.5), wsize, gwater.GetRadius() * 0.9, Vector(), color)
 		end)
 

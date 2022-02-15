@@ -3,12 +3,18 @@ AddCSLuaFile()
 ENT.Type = "anim"
 ENT.Base = "base_gmodentity"
 
+list.Set("gwater_entities", "gwater_rendermesh", {
+	Category = "Other Cool Stuff",
+	Name = "Cloth",
+	Material = "entities/gwater_cloth.png"
+})
+
 ENT.Category		= "GWater"
 ENT.PrintName		= "Cloth"
 ENT.Author			= "Mee & AndrewEathan (with help from PotatoOS)"
 ENT.Purpose			= ""
 ENT.Instructions	= ""
-ENT.Spawnable		= true
+ENT.GWaterEntity 	= true
 
 --due to source lighting, we need an entity in the world to parent the mesh to
 local renderMeshes = {}
@@ -24,6 +30,7 @@ function ENT:Initialize()
 	end
 
 	-- put it at 0,0,0 because 0,0,0 needs to be outside the world for the map to compile, and will result in proper lighting
+	self:SetModel("models/Gibs/HGIBS.mdl")
 	self:SetPos(Vector())
 	self:SetAngles(Angle())
 end

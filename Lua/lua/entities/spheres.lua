@@ -29,7 +29,8 @@ for k,v in ipairs(xyz) do
 			net.WriteInt(v, 8)
 			net.WriteVector(ply.GWATER_COLOR or Vector(0.75, 1, 2))
 		net.Broadcast()
-
+		
+		print("fuck")
 		return nil
 	end
 

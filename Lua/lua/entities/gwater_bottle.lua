@@ -18,6 +18,7 @@ ENT.Purpose			= "Functional bottle!"
 ENT.Instructions	= ""
 ENT.Editable		= true
 ENT.GWaterEntity 	= true
+ENT.SpawnOffset		= Vector(0, 0, 8)
 
 function ENT:Initialize()
 	self.Running = false

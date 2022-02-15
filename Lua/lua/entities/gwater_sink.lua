@@ -15,6 +15,7 @@ ENT.Author			= "Mee & AndrewEathan (with help from PotatoOS)"
 ENT.Purpose			= "Functional GWater sink!"
 ENT.Instructions	= ""
 ENT.GWaterEntity 	= true
+ENT.SpawnOffset		= Vector(0, 0, 14)
 
 function ENT:Initialize()
 	self.Running = false

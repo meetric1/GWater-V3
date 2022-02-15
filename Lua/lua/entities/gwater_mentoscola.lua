@@ -16,6 +16,7 @@ ENT.AdminOnly		= false
 ENT.Instructions	= ""
 ENT.Editable 		= true
 ENT.GWaterEntity 	= true
+ENT.SpawnOffset		= Vector(0, 0, 8)
 
 function ENT:Initialize()
 	self.Running = false
@@ -98,7 +99,7 @@ function ENT:TurnOn()
 	self.FlowSound:Play()
 	self.FlowSound:ChangeVolume(1)
 	
-	Wire_TriggerOutput(self, "Active", 1)
+	if WireLib then Wire_TriggerOutput(self, "Active", 1) end
 end
 
 function ENT:TurnOff()
@@ -108,7 +109,7 @@ function ENT:TurnOff()
 	self:SetNWBool("Running", self.Running)
 	self.FlowSound:Stop()
 	
-	Wire_TriggerOutput(self, "Active", 0)
+	if WireLib then Wire_TriggerOutput(self, "Active", 0) end
 end
 
 function ENT:Use()

@@ -15,6 +15,7 @@ ENT.Author			= "Mee & AndrewEathan (with help from PotatoOS)"
 ENT.Purpose			= "wtflol"
 ENT.Instructions	= ""
 ENT.GWaterEntity 	= true
+ENT.SpawnOffset		= Vector(0, 0, 25)
 
 function ENT:Initialize()
 	self.Running = false

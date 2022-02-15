@@ -61,7 +61,7 @@ function ENT:TurnOn()
 	self:EmitSound("buttons/lever1.wav")
 	self.FlowSound:Play()
 	
-	Wire_TriggerOutput(self, "Active", 1)
+	if WireLib then Wire_TriggerOutput(self, "Active", 1) end
 end
 
 function ENT:TurnOff()
@@ -72,7 +72,7 @@ function ENT:TurnOff()
 	self:EmitSound("buttons/lever1.wav")
 	self.FlowSound:Stop()
 	
-	Wire_TriggerOutput(self, "Active", 0)
+	if WireLib then Wire_TriggerOutput(self, "Active", 0) end
 end
 
 function ENT:Use()

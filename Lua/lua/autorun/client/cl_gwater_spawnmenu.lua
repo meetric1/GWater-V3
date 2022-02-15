@@ -102,6 +102,11 @@ spawnmenu.AddContentType("gwater_entity", function(container, obj)
 	icon.OpenMenu = function(icon)
 		local menu = DermaMenu()
 			menu:AddOption("Copy to Clipboard", function() SetClipboardText(obj.spawnname) end)
+			menu:AddOption("Spawn using Toolgun", function() 
+				RunConsoleCommand("gmod_tool", "creator") 
+				RunConsoleCommand("creator_type", "0") 
+				RunConsoleCommand("creator_name", obj.spawnname) 
+			end):SetIcon("icon16/brick_add.png")
 		menu:Open()
 	end
 	

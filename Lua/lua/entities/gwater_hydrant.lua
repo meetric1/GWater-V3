@@ -81,7 +81,7 @@ function ENT:TriggerInput(name, value)
 			end
 		end
 	
-		Wire_TriggerOutput(self, "ConnectedEntities", self.ConnectedEntities)
+		if WireLib then Wire_TriggerOutput(self, "ConnectedEntities", self.ConnectedEntities) end 
 		self:UpdateClientEntities()
 	end
 end
@@ -273,7 +273,7 @@ else
 		ent:EmitSound("gwater/bluetooth_hose_on.wav")
 		ent1:EmitSound("gwater/bluetooth_hose_on.wav")
 		
-		Wire_TriggerOutput(ent, "ConnectedEntities", ent.ConnectedEntities)
+		if WireLib then Wire_TriggerOutput(ent, "ConnectedEntities", ent.ConnectedEntities) end
 		ent:UpdateClientEntities()
 	end)
 	
@@ -288,7 +288,7 @@ else
 		ent:EmitSound("gwater/bluetooth_hose_off.wav")
 		ent1:EmitSound("gwater/bluetooth_hose_off.wav")
 		
-		Wire_TriggerOutput(ent, "ConnectedEntities", ent.ConnectedEntities)
+		if WireLib then Wire_TriggerOutput(ent, "ConnectedEntities", ent.ConnectedEntities) end
 		ent:UpdateClientEntities()
 	end)
 end

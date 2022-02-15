@@ -16,6 +16,7 @@ ENT.Purpose			= "Functional GWater showerhead!"
 ENT.Instructions	= ""
 ENT.Editable		= true
 ENT.GWaterEntity 	= true
+ENT.SpawnOffset		= Vector(0, 0, 12)
 
 function ENT:Initialize()
 	self.Running = false
