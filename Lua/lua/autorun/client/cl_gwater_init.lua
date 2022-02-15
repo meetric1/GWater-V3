@@ -6,7 +6,8 @@ hook.Add("GWaterPostInitialized", "GWater.Startup", function()
     local water_sound_id = 0
 
     timer.Create("GWATER_CANSWIM", 0.1, 0, function()
-        local particlesNearMe = gwater.ParticlesNear(LocalPlayer():GetPos() + Vector(0, 0, 30), 1.5)
+        local playersize = LocalPlayer().SCALE_MULTIPLIER or 1  -- make it compatable with my shrink addon :)
+        local particlesNearMe = gwater.ParticlesNear(LocalPlayer():GetPos() + Vector(0, 0, playersize * 30), 1.5 * gwater.GetRadius())
         if particlesNearMe > 13 then --13
             if not isSwimming then
                 isSwimming = true
@@ -28,13 +29,6 @@ hook.Add("GWaterPostInitialized", "GWater.Startup", function()
             LocalPlayer():SetDSP(0, true)
             LocalPlayer():StopLoopingSound(water_sound_id)
         end
-
-        local plys = ents.FindByClass("player")
-        for k, v in ipairs(plys) do
-            if v:IsValid() and v:GetActiveWeapon():IsValid() and v:GetActiveWeapon():GetClass() == "weapon_physcannon" and v:KeyDown(IN_ATTACK2) then
-                gwater.ApplyForceOutwards(v:EyePos() + v:EyeAngles():Forward() * 125 + Vector(0, 0, 10), -15, 100, false);
-            end
-        end
     end)
 
     -- rendering
@@ -44,6 +38,8 @@ hook.Add("GWaterPostInitialized", "GWater.Startup", function()
     local drawSprite = render.DrawSprite
     local drawSphere = render.DrawSphere
 
+    local currentWatermat
+    local refractInt = "$refracttint"
     function GWater_DrawSprite(pos, size)   --cache drawSprite and put this on _G for faster lookup in c++
         drawSprite(pos, size, size)
     end
@@ -52,6 +48,10 @@ hook.Add("GWaterPostInitialized", "GWater.Startup", function()
         drawSphere(pos, size, 5, 5)
     end
 
+    function GWater_SetDrawColor(color)
+        currentWatermat:SetVector(refractInt, color)
+    end
+	
     hook.Add("PostDrawTranslucentRenderables", "GWATER_RENDER", function(drawingDepth, drawingSkybox, isDraw3DSkybox)
         if drawingSkybox then return end
         if not rendercvar:GetBool() then return end
@@ -71,10 +71,9 @@ hook.Add("GWaterPostInitialized", "GWater.Startup", function()
         local dir3 = forward + eye:Up() * 2
         local dir4 = forward - eye:Up() * 2
 
-        gwater.RenderedParticles = gwater.RenderParticles(override, EyePos(), dir1, dir2, dir3, dir4)
-    end)
-
-    hook.Add( "HUDPaint", "GWATER_SCORE", function()
-        draw.DrawText(tostring(gwater.GetParticleCount()), "TargetID", ScrW() * 0.99, ScrH() * 0.01, color_white, TEXT_ALIGN_RIGHT)
+        local origColor = gwater.Material:GetVector("$refracttint")
+        currentWatermat = gwater.Material
+        gwater.RenderParticles(override, EyePos(), dir1, dir2, dir3, dir4)
+        gwater.Material:SetVector("$refracttint", origColor)
     end)
 end)

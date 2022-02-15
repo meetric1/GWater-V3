@@ -2,18 +2,12 @@
 #include "declarations.h"
 
 #define MAX_COLLIDERS 4096
-#define MAX_PARTICLES 65536
+#define MAX_PARTICLES 250000
 
 //tysm this was very useful for debugging
 void gjelly_error(NvFlexErrorSeverity type, const char* msg, const char* file, int line) {
     LUA_Print("FLEX ERROR:");
     LUA_Print(msg);
-}
-
-//add a particle to flex
-void FLEX_API::addParticle(Vector pos, Vector vel) {
-    Particle particle = Particle{float4(pos, 0.5f), float3(vel)};
-    particleQueue.push_back(particle);
 }
 
 //maps ALL flex buffers
@@ -22,12 +16,14 @@ void FLEX_API::mapBuffers() {
     simBuffers->velocities = (float3*)NvFlexMap(velocityBuffer, eNvFlexMapWait);
     simBuffers->phases = (int*)NvFlexMap(phaseBuffer, eNvFlexMapWait);
     simBuffers->activeIndices = (int*)NvFlexMap(activeBuffer, eNvFlexMapWait);
+
     simBuffers->geometry = (NvFlexCollisionGeometry*)NvFlexMap(geometryBuffer, eNvFlexMapWait);
     simBuffers->positions = (float4*)NvFlexMap(geoPosBuffer, eNvFlexMapWait);
     simBuffers->rotations = (float4*)NvFlexMap(geoQuatBuffer, eNvFlexMapWait);
     simBuffers->prevPositions = (float4*)NvFlexMap(geoPrevPosBuffer, eNvFlexMapWait);
     simBuffers->prevRotations = (float4*)NvFlexMap(geoPrevQuatBuffer, eNvFlexMapWait);
     simBuffers->flags = (int*)NvFlexMap(geoFlagsBuffer, eNvFlexMapWait);
+
     simBuffers->indices = (int*)NvFlexMap(indicesBuffer, eNvFlexMapWait);
     simBuffers->lengths = (float*)NvFlexMap(lengthsBuffer, eNvFlexMapWait);
     simBuffers->coefficients = (float*)NvFlexMap(coefficientsBuffer, eNvFlexMapWait);
@@ -39,12 +35,14 @@ void FLEX_API::unmapBuffers() {
     NvFlexUnmap(velocityBuffer);
     NvFlexUnmap(phaseBuffer);
     NvFlexUnmap(activeBuffer);
+
     NvFlexUnmap(geometryBuffer);
     NvFlexUnmap(geoPrevPosBuffer);
     NvFlexUnmap(geoPrevQuatBuffer);
     NvFlexUnmap(geoPosBuffer);
     NvFlexUnmap(geoQuatBuffer);
     NvFlexUnmap(geoFlagsBuffer);
+
     NvFlexUnmap(indicesBuffer);
     NvFlexUnmap(lengthsBuffer);
     NvFlexUnmap(coefficientsBuffer);
@@ -114,6 +112,7 @@ int FLEX_API::removeInRadius(float3 pos, float radius) {
         else {
             ParticleCount--;
             numParticlesRemoved++;
+            particleColors.erase(particleColors.begin() + n);   //"The erase method on std::vector is overloaded, so it's probably clearer to call this when you only want to erase a single element"
         }
     }
 
@@ -121,6 +120,59 @@ int FLEX_API::removeInRadius(float3 pos, float radius) {
     bufferMutex->unlock();
 
     return numParticlesRemoved;
+}
+
+float FLEX_API::editParticle(int ID, float3 pos, float3 vel, float mass) {
+    bufferMutex->lock();
+
+    if (!SimValid) {
+        bufferMutex->unlock();
+        return 0.f;
+    }
+
+    mapBuffers();
+
+    float oldMass = simBuffers->particles[ID].w;
+    float4 newPos = float4(pos.x, pos.y, pos.z, mass);
+    simBuffers->particles[ID] = newPos;
+    simBuffers->velocities[ID] = vel;
+
+    unmapBuffers();
+
+    bufferMutex->unlock();
+
+    return oldMass;
+}
+
+void FLEX_API::removeAllCloth() {
+    mapBuffers();
+
+    //remember we are using distance2 (distance squared) we must follow system of equations
+    //dist = sqrt((x_2 - x_1)^2 + (y_2 - y_1) ^2) is the same as d^2 = (x_2 - x_1)^2 + (y_2-y_1)^2 with (^ = pow)
+    //square root is pretty expensive especially in large amounts, and we should optimize best we can to avoid it, this is why we use distance2()
+
+    int n = 0;
+    int num = ParticleCount;
+    for (int i = 0; i < num; i++) {
+        if (simBuffers->particles[i].w == 0.5) {
+            simBuffers->particles[n] = simBuffers->particles[i];
+            simBuffers->velocities[n] = simBuffers->velocities[i];
+            simBuffers->phases[n] = simBuffers->phases[i];
+            n++;
+        }
+        else {
+            ParticleCount--;
+            particleColors.erase(particleColors.begin() + n);   //"The erase method on std::vector is overloaded, so it's probably clearer to call this when you only want to erase a single element"
+        }
+    }
+
+    triangles.clear();
+    memset(simBuffers->indices, NULL, sizeof(int) * MAX_PARTICLES);
+    memset(simBuffers->lengths, NULL, sizeof(float) * MAX_PARTICLES);
+    memset(simBuffers->coefficients, NULL, sizeof(float) * MAX_PARTICLES);
+    springCount = 0;
+
+    unmapBuffers();
 }
 
 // Culls particles outside of maxParticles, this is only to be used for maxParticles changes
@@ -132,16 +184,10 @@ void FLEX_API::cullParticles()
         bufferMutex->unlock();
         return;
     }
-
-    mapBuffers();
     
-    for (int i = flexSolverDesc.maxParticles; i < 65536; i++) {
-        simBuffers->particles[i] = 0;
-        simBuffers->velocities[i] = 0;
-        simBuffers->phases[i] = 0;
-    }
+    if (ParticleCount > flexSolverDesc.maxParticles)
+        ParticleCount = flexSolverDesc.maxParticles;
 
-    unmapBuffers();
     bufferMutex->unlock();
 }
 
@@ -232,7 +278,7 @@ void FLEX_API::applyForce(float3 pos, float3 vel, float radius, bool linear) {
     bufferMutex->unlock();
 }
 
-void FLEX_API::applyForceOutwards(float3 pos, float strength, float radius, bool linear) {
+void FLEX_API::applyForceRange(float3 pos, float3 vel, float radius, bool linear, std::vector<int> range) {
     bufferMutex->lock();
     if (!SimValid) {
         bufferMutex->unlock();
@@ -243,8 +289,53 @@ void FLEX_API::applyForceOutwards(float3 pos, float strength, float radius, bool
 
     radius = radius * radius;
 
+    for (int i : range) {
+        float dist = DistanceSquared(simBuffers->particles[i], pos);
+        if (dist <= radius) {
+            float theta = 1 - dist / radius;
+            simBuffers->velocities[i] = simBuffers->velocities[i] + vel * (linear ? theta : 1);
+        }
+    }
+
+    unmapBuffers();
+    bufferMutex->unlock();
+}
+
+void FLEX_API::applyForceOutwards(float3 pos, float strength, float radius, bool linear) {
+    bufferMutex->lock();
+    if (!SimValid) {
+        bufferMutex->unlock();
+        return;
+    }
+
+    mapBuffers();
+
+    radius = radius * radius;
     int num = ParticleCount;
     for (int i = 0; i < num; i++) {
+        float dist = DistanceSquared(simBuffers->particles[i], pos);
+        if (dist <= radius) {
+            float theta = 1 - dist / radius;
+            float3 vel = normalize(pos - float3(simBuffers->particles[i])) * strength;
+            simBuffers->velocities[i] = simBuffers->velocities[i] - vel * (linear ? theta : 1);
+        }
+    }
+    unmapBuffers();
+
+    bufferMutex->unlock();
+}
+
+void FLEX_API::applyForceOutwardsRange(float3 pos, float strength, float radius, bool linear, std::vector<int> range) {
+    bufferMutex->lock();
+    if (!SimValid) {
+        bufferMutex->unlock();
+        return;
+    }
+
+    mapBuffers();
+
+    radius = radius * radius;
+    for (int i : range) {
         float dist = DistanceSquared(simBuffers->particles[i], pos);
         if (dist <= radius) {
             float theta = 1 - dist / radius;
@@ -307,9 +398,18 @@ void FLEX_API::deleteForceField(int ID) {
     bufferMutex->unlock();
 }
 
+void FLEX_API::SetParticleLimit(int limit) {
+    if (limit < 0) limit = 0;
+    if (limit > MAX_PARTICLES) limit = MAX_PARTICLES;
+
+    FLEX_Simulation->flexSolverDesc.maxParticles = limit;
+    FLEX_Simulation->cullParticles();
+}
+
 void FLEX_API::removeAllParticles() {
     particleQueue.clear();
     triangles.clear();
+    particleColors.clear();
     mapBuffers();
     memset(simBuffers->particles, NULL, sizeof(float4) * MAX_PARTICLES);
     memset(simBuffers->indices, NULL, sizeof(int) * MAX_PARTICLES);
@@ -317,7 +417,7 @@ void FLEX_API::removeAllParticles() {
     memset(simBuffers->coefficients, NULL, sizeof(float) * MAX_PARTICLES);
     unmapBuffers();
     ParticleCount = 0;
-    SpringCount = 0;
+    springCount = 0;
 }
 
 //flex startup
@@ -339,10 +439,10 @@ FLEX_API::FLEX_API() {
 
 
     // Create buffers
-    particleBuffer = NvFlexAllocBuffer(flexLibrary, flexSolverDesc.maxParticles, sizeof(float4), eNvFlexBufferHost);
-    velocityBuffer = NvFlexAllocBuffer(flexLibrary, flexSolverDesc.maxParticles, sizeof(float3), eNvFlexBufferHost);
-    phaseBuffer = NvFlexAllocBuffer(flexLibrary, flexSolverDesc.maxParticles, sizeof(int), eNvFlexBufferHost);
-    activeBuffer = NvFlexAllocBuffer(flexLibrary, flexSolverDesc.maxParticles, sizeof(int), eNvFlexBufferHost);
+    particleBuffer = NvFlexAllocBuffer(flexLibrary, MAX_PARTICLES, sizeof(float4), eNvFlexBufferHost);
+    velocityBuffer = NvFlexAllocBuffer(flexLibrary, MAX_PARTICLES, sizeof(float3), eNvFlexBufferHost);
+    phaseBuffer = NvFlexAllocBuffer(flexLibrary, MAX_PARTICLES, sizeof(int), eNvFlexBufferHost);
+    activeBuffer = NvFlexAllocBuffer(flexLibrary, MAX_PARTICLES, sizeof(int), eNvFlexBufferHost);
 
     // Geometry buffers 
     geometryBuffer = NvFlexAllocBuffer(flexLibrary, MAX_COLLIDERS, sizeof(NvFlexCollisionGeometry), eNvFlexBufferHost);
@@ -358,7 +458,8 @@ FLEX_API::FLEX_API() {
     coefficientsBuffer = NvFlexAllocBuffer(flexLibrary, MAX_PARTICLES * 2, sizeof(float), eNvFlexBufferHost);
 
     // Host buffer
-    particleBufferHost = static_cast<float4*>(malloc(sizeof(float4) * flexSolverDesc.maxParticles));
+    particleBufferHost = static_cast<float4*>(malloc(sizeof(float4) * MAX_PARTICLES));
+    velocityBufferHost = static_cast<float3*>(malloc(sizeof(float3) * MAX_PARTICLES));
 
     //create buffer for the thread
     bufferMutex = new std::mutex();
@@ -384,19 +485,21 @@ FLEX_API::~FLEX_API() {
     if (flexLibrary != nullptr) {
 
         //remove props from memory
-        for (int i = 0; i < props.size(); i++) freeProp(i);
+        for (int i = props.size() - 1; i >= 0; i--) freeProp(i);
 
         //clear ALL buffers
         NvFlexFreeBuffer(particleBuffer);
         NvFlexFreeBuffer(velocityBuffer);
         NvFlexFreeBuffer(phaseBuffer);
         NvFlexFreeBuffer(activeBuffer);
+
         NvFlexFreeBuffer(geometryBuffer);
         NvFlexFreeBuffer(geoPosBuffer);
         NvFlexFreeBuffer(geoQuatBuffer);
         NvFlexFreeBuffer(geoFlagsBuffer);
         NvFlexFreeBuffer(geoPrevPosBuffer);
         NvFlexFreeBuffer(geoPrevQuatBuffer);
+
         NvFlexFreeBuffer(indicesBuffer);
         NvFlexFreeBuffer(lengthsBuffer);
         NvFlexFreeBuffer(coefficientsBuffer);
@@ -407,6 +510,7 @@ FLEX_API::~FLEX_API() {
         delete flexParams;
 
         free(particleBufferHost);
+        free(velocityBufferHost);
 
         //shutdown library
         NvFlexDestroySolver(flexSolver);
@@ -417,6 +521,7 @@ FLEX_API::~FLEX_API() {
         particleQueue.clear();
         props.clear();
         triangles.clear();
+        particleColors.clear();
 
     }
 

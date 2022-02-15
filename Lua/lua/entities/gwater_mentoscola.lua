@@ -2,6 +2,12 @@ AddCSLuaFile()
 
 ENT.Type = "anim"
 
+list.Set("gwater_entities", "gwater_mentoscola", {
+	Category = "Emitters",
+	Name = "Mentos with Cola",
+	Material = "entities/gwater_mentoscola.png"
+})
+
 ENT.Category		= "GWater"
 ENT.PrintName		= "Mentos with Cola"
 ENT.Author			= "Mee & AndrewEathan (with help from PotatoOS)"
@@ -9,7 +15,7 @@ ENT.Purpose			= "OH NO"
 ENT.AdminOnly		= false
 ENT.Instructions	= ""
 ENT.Editable 		= true
-ENT.Spawnable		= true
+ENT.GWaterEntity 	= true
 
 function ENT:Initialize()
 	self.Running = false
@@ -17,6 +23,11 @@ function ENT:Initialize()
 	
 	if CLIENT then
 		return
+	end
+	
+	if WireLib then
+		WireLib.CreateInputs(self, {"On", "Toggle"})
+		WireLib.CreateOutputs(self, {"Active"})
 	end
 	
 	self.FlowSound = CreateSound(self, "thrusters/rocket04.wav")
@@ -63,6 +74,51 @@ function ENT:Use()
 	end)
 end
 
+function ENT:TriggerInput(name, value)
+	if name == "On" then
+		if value == 1 then
+			self:TurnOn()
+		else
+			self:TurnOff()
+		end
+	end
+	if name == "Toggle" and value == 1 then
+		self:Use(self)
+	end
+end
+
+function ENT:TurnOn()
+	if self.Running then return end
+	
+	self.Started = false
+	self.Running = true
+	self:SetNWBool("Running", self.Running)
+	self:SetNWInt("TimeSinceRun", CurTime())
+	
+	self.FlowSound:Play()
+	self.FlowSound:ChangeVolume(1)
+	
+	Wire_TriggerOutput(self, "Active", 1)
+end
+
+function ENT:TurnOff()
+	if not self.Running then return end
+	
+	self.Running = false
+	self:SetNWBool("Running", self.Running)
+	self.FlowSound:Stop()
+	
+	Wire_TriggerOutput(self, "Active", 0)
+end
+
+function ENT:Use()
+	if self.Running then
+		self:TurnOff()
+	else
+		self:TurnOn()
+	end
+end
+
 function ENT:OnRemove()
 	if CLIENT then return end
 	
@@ -96,13 +152,18 @@ function ENT:Think()
 	if self:GetNWBool("Running") then
 		local pos = self:LocalToWorld(Vector(0, 0, 5))
 		local ang = self:GetUp()
+
+		local drawColor = self:GetColor():ToVector()
+		if drawColor == Vector(1, 1, 1) then
+			drawColor = Vector(0.75, 1, 2)
+		end
 		
 		for i=0, 5 - dt do
-			gwater.SpawnParticle(pos + VectorRand(-8, 8), VectorRand(-1, 1) * 25 * (1 - dt / die))
+			gwater.SpawnParticle(pos + VectorRand(-8, 8), VectorRand(-1, 1) * 25 * (1 - dt / die), drawColor)
 		end
 		
 		for i=0, 20 * (1 - dt / die) do
-			gwater.SpawnParticle(self:LocalToWorld(Vector(0, 0, math.random(7, 20))), ang * 200 * (1 - dt / die))
+			gwater.SpawnParticle(self:LocalToWorld(Vector(0, 0, math.random(7, 20))), ang * 200 * (1 - dt / die), drawColor)
 		end
 	end
 	

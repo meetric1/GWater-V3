@@ -45,15 +45,6 @@ float3 crossProduct(float3 A, float3 B) {
     );
 }
 
-float length(float3 v) {
-    return sqrt((v.x * v.x) + (v.y * v.y) + (v.z * v.z));
-}
-
-float3 normalize(float3 v) {
-    return v / length(v);
-}
-
-
 //adds CONVEX mesh for flex
 void FLEX_API::addMeshConvex(GarrysMod::Lua::ILuaBase* LUA) {
     float4 meshAng = quatFromAngle(LUA->GetAngle(-1));
@@ -216,94 +207,4 @@ void FLEX_API::addMeshCapsule(GarrysMod::Lua::ILuaBase* LUA) {
 void FLEX_API::updateMeshPos(Vector pos, QAngle ang, int id) {
     props[id].pos = float4(pos, 1.f / 50000.f);
     props[id].ang = quatFromAngle(ang);
-}
-
-
-//https://github.com/NVIDIAGameWorks/FleX/blob/b1ea0f87b72582649c935d53fd8531b1e7335160/demo/helpers.h
-void FLEX_API::CreateSpring(int i, int j, float stiffness, float give) {   
-    if (SpringCount >= flexSolverDesc.maxParticles) return;
-    simBuffers->indices[SpringCount * 2] = i;
-    simBuffers->indices[SpringCount * 2 + 1] = j;
-    simBuffers->lengths[SpringCount]= (1.0f + give) * length(float3(simBuffers->particles[i]) - float3(simBuffers->particles[j]));
-    simBuffers->coefficients[SpringCount] = stiffness;
-    SpringCount++;
-}
-
-inline int GridIndex(int x, int y, int dx) {return y * dx + x;}
-
-void FLEX_API::CreateSpringGrid(float3 lower, int dx, int dy, int dz, float radius, int phase, float stiffness, float invMass) {
-    int baseIndex = ParticleCount;
-
-    for (int y = 0; y < dy; ++y)
-    {
-        for (int x = 0; x < dx; ++x)
-        {
-            if (ParticleCount >= flexSolverDesc.maxParticles) break;
-
-            float3 positionfloat3 = lower + float3(radius) * float3(float(x) + 0.5f, float(y) + 0.5f, 0);
-            float4 positionfloat4 = float4(positionfloat3.x, positionfloat3.y, positionfloat3.z, invMass);
-        
-            simBuffers->particles[ParticleCount] = positionfloat4;
-            simBuffers->velocities[ParticleCount] = float3(0.f);
-            simBuffers->phases[ParticleCount] = phase;
-            simBuffers->activeIndices[ParticleCount] = ParticleCount;
-            ParticleCount++;
-        }
-    }
-
-    // horizontal
-    for (int y = 0; y < dy; ++y)
-    {
-        for (int x = 0; x < dx; ++x)
-        {
-            int index0 = y * dx + x;
-            /*
-            if (x > 0)
-            {
-                int index1 = y * dx + x - 1;
-                CreateSpring(baseIndex + index0, baseIndex + index1, stretchStiffness);
-            }
-            
-            if (x > 1)
-            {
-                int index2 = y * dx + x - 2;
-                CreateSpring(baseIndex + index0, baseIndex + index2, bendStiffness);
-            }*/
-            
-            if (y > 0)
-            {
-                int indexDiag = (y - 1) * dx + x;
-                CreateSpring(baseIndex + index0, baseIndex + indexDiag, stiffness);
-            }
-
-            if (x > 0)
-            {
-                int indexDiag = y * dx + x - 1;
-                CreateSpring(baseIndex + index0, baseIndex + indexDiag, stiffness);
-            }
-        }
-    }
-
-    // push triangles to a vector
-    std::vector<int> tris;
-    for (int y = 1; y < dy; ++y)
-    {
-        for (int x = 1; x < dx; ++x)
-        {
-            if (baseIndex + (y * dx + x) >= flexSolverDesc.maxParticles) break;
-
-            tris.push_back(baseIndex + (y * dx + x));
-            tris.push_back(baseIndex + (y * dx + x - 1));
-            tris.push_back(baseIndex + ((y - 1) * dx + x));
-            tris.push_back(baseIndex + ((y - 1) * dx + x - 1));
-        }
-    }
-    triangles.push_back(tris);
-}
-
-void FLEX_API::addCloth(Vector pos, int width, float radius, float stiffness, float mass) {
-    int phase = NvFlexMakePhase(0, eNvFlexPhaseSelfCollide);
-    mapBuffers();
-    CreateSpringGrid(float3(pos) - float3(width, width, 0) * radius / 2, width, width, 1, radius, phase, stiffness, 1.f / mass);
-    unmapBuffers();
 }

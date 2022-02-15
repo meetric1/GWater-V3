@@ -3,16 +3,23 @@ AddCSLuaFile()
 ENT.Type = "anim"
 ENT.Base = "base_gmodentity"
 
+list.Set("gwater_entities", "gwater_cloth", {
+	Category = "Other Cool Stuff",
+	Name = "Cloth",
+	Material = "entities/gwater_cloth.png"
+})
+
 ENT.Category		= "GWater"
 ENT.PrintName		= "Cloth"
 ENT.Author			= "Mee & AndrewEathan (with help from PotatoOS)"
 ENT.Purpose			= ""
 ENT.Instructions	= ""
-ENT.Spawnable		= true
+ENT.GWaterEntity 	= true
 
 --due to source lighting, we need an entity in the world to parent the mesh to
 local renderMeshes = {}
 function ENT:Initialize()
+	print("horg")
 	self:DrawShadow(false)	-- enabling this does weird shit because the prop is technically like, 32 thousand units wide and casts a map-wide shadow
 	if CLIENT then
 		self:SetRenderBounds(Vector(-32768, -32768, -32768), Vector(32768, 32768, 32768))	-- just make it render anywhere
@@ -52,7 +59,7 @@ function ENT:OnRemove()
 			end
 		end)
 	else
-		for k, v in ipairs(ents.FindByClass("gwater_rendermesh")) do	-- die, other rendermeshes
+		for k, v in ipairs(ents.FindByClass("gwater_cloth")) do	-- die, other rendermeshes
 			SafeRemoveEntity(v)
 		end
 	end

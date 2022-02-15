@@ -54,6 +54,42 @@ surface.CreateFont( "GWaterThinSmall", {
 	outline = false,
 })
 
+surface.CreateFont( "GWaterThinSmaller", {
+	font = "Coolvetica",
+	extended = false,
+	size = 14,
+	weight = 550,
+	blursize = 0,
+	scanlines = 0,
+	antialias = true,
+	underline = false,
+	italic = false,
+	strikeout = false,
+	symbol = false,
+	rotary = false,
+	shadow = false,
+	additive = false,
+	outline = false,
+})
+
+surface.CreateFont( "GWaterThinSmallest", {
+	font = "Coolvetica",
+	extended = false,
+	size = 12,
+	weight = 550,
+	blursize = 0,
+	scanlines = 0,
+	antialias = true,
+	underline = false,
+	italic = false,
+	strikeout = false,
+	symbol = false,
+	rotary = false,
+	shadow = false,
+	additive = false,
+	outline = false,
+})
+
 surface.CreateFont( "GWaterThinLarge", {
 	font = "Coolvetica",
 	extended = false,
@@ -102,6 +138,12 @@ end
 
 local psound = surface.PlaySound
 
+local function updateWaterColor(c)
+	net.Start("GWATER_REQUESTCOLOR")
+		net.WriteVector(c)
+	net.SendToServer()
+end
+
 local function quickControlsTab(tabs)
 	local quickcontrol = vgui.Create("DPanel", tabs)
 	local qcontroltab = tabs:AddSheet("Quick Control", quickcontrol, "icon16/wrench_orange.png").Tab
@@ -131,6 +173,13 @@ local function quickControlsTab(tabs)
 		surface.SetTextColor(200, 200, 200)
 		surface.SetTextPos(18, 0)
 		surface.DrawText("Water Gravity")
+		
+		surface.SetFont("GWaterThinSmallest")
+		surface.SetTextColor(200, 200, 200)
+		surface.SetTextPos(5, 126)
+		surface.DrawText("(If nothing shows up in this box")
+		surface.SetTextPos(5, 136)
+		surface.DrawText("it's a game bug, sorry)")
 	end
 	
 	local dir = EyeAngles():Forward() * 9.8
@@ -148,17 +197,30 @@ local function quickControlsTab(tabs)
 		gwater.SetConfig("gravityZ", dir.z)
 	end
 	
-	local inittoaim = vgui.Create("DButton", quickcontrol)
-	inittoaim:SetText("Set gravity to the ground")
-	inittoaim:SetPos( 170, 40 )
-	inittoaim:SetSize( 130, 20 )
-	inittoaim.Paint = GenericPaint
-	inittoaim:SetTextColor(Color(100, 200, 200))
-	inittoaim.DoClick = function()
+	local inittoground = vgui.Create("DButton", quickcontrol)
+	inittoground:SetText("Set gravity to the ground")
+	inittoground:SetPos( 170, 40 )
+	inittoground:SetSize( 130, 20 )
+	inittoground.Paint = GenericPaint
+	inittoground:SetTextColor(Color(100, 200, 200))
+	inittoground.DoClick = function()
 		psound("buttons/button15.wav")
 		gwater.SetConfig("gravityX", 0)
 		gwater.SetConfig("gravityY", 0)
 		gwater.SetConfig("gravityZ", -9.8)
+	end
+	
+	local zero = vgui.Create("DButton", quickcontrol)
+	zero:SetText("Set zero gravity")
+	zero:SetPos( 310, 10 )
+	zero:SetSize( 130, 20 )
+	zero.Paint = GenericPaint
+	zero:SetTextColor(Color(100, 200, 200))
+	zero.DoClick = function()
+		psound("buttons/button15.wav")
+		gwater.SetConfig("gravityX", 0)
+		gwater.SetConfig("gravityY", 0)
+		gwater.SetConfig("gravityZ", 0)
 	end
 	
 	function icon:LayoutEntity(Entity) return end
@@ -207,6 +269,7 @@ hook.Add("Tick", "GWater_Rainbow_Color_EE", function()
 		local col = HSVToColor(CurTime() * 100 % 360, 1, 1)
 		local vec = Vector(col.r, col.g, col.b) / 127.5
 		gwater.Material:SetVector("$refracttint", vec)
+		updateWaterColor(vec)	--eh fuckit im lazy, just send this every tick I guess
 	end
 end)
 
@@ -231,7 +294,7 @@ local function renderingTab(tabs)
 	watercol:SetSize(150, 100)
 	watercol.PaintOver = GenericPaintNBG
 	watercol.Paint = function(self, w, h)
-		local v = gwater.Material:GetVector("$color") or gwater.Material:GetVector("$refracttint") or Vector(1, 1, 1)
+		local v = gwater.Material:GetVector("$refracttint") or gwater.Material:GetVector("$color") or Vector(1, 1, 1)
 		surface.SetFont("GWaterThin")
 		surface.SetTextColor(200, 200, 200)
 		surface.SetTextPos(24, 2)
@@ -275,6 +338,8 @@ local function renderingTab(tabs)
 		local vis = (vec * 127.5 == Vector(69, 69, 69))
 		rainbowcheckbox:SetVisible(vis)
 		rainbowEasterEgg = vis
+
+		updateWaterColor(vec)
 	end
 	
 	local greens = vgui.Create("DNumSlider", rendering)
@@ -294,6 +359,8 @@ local function renderingTab(tabs)
 		local vis = (vec *127.5 == Vector(69, 69, 69))
 		rainbowcheckbox:SetVisible(vis)
 		rainbowEasterEgg = vis
+
+		updateWaterColor(vec)
 	end
 	
 	local blues = vgui.Create("DNumSlider", rendering)
@@ -313,6 +380,8 @@ local function renderingTab(tabs)
 		local vis = (vec * 127.5 == Vector(69, 69, 69))
 		rainbowcheckbox:SetVisible(vis)
 		rainbowEasterEgg = vis
+
+		updateWaterColor(vec)
 	end
 	
 	local refract = vgui.Create("DNumSlider", rendering)
@@ -552,15 +621,12 @@ local function gwaterTab(tabs)
 			gwater.SetConfig("gravityX", 0)
 			gwater.SetConfig("gravityY", 0)
 			gwater.SetConfig("gravityZ", -9.8)
-			gwater.Materials["water"]:SetVector("$refracttint", Vector(0.75, 1, 2))
 			
 			timer.Remove("gwater_snowmode")
 		else --turn on snowy stuff xd
 			gwater.SetConfig("maxAcceleration", 64)
 			gwater.SetConfig("adhesion", 0.08)
 			gwater.SetConfig("gravityZ", -0.8)
-			gwater.Materials["water"]:SetVector("$refracttint", Vector(2, 2, 2))
-			gwater.Material = gwater.Materials["water"]
 			
 			timer.Create("gwater_snowmode", 0.1, 0, function()
 				gwater.SetConfig("gravityX", math.sin(CurTime() * 1.2) * 2)
@@ -574,7 +640,7 @@ local function gwaterTab(tabs)
 								
 					local vel = VectorRand(-25, 25)
 				
-					gwater.SpawnParticle(pos, vel)
+					gwater.SpawnParticle(pos, vel, Vector(5, 5, 5))
 				end
 			end)
 			
@@ -594,25 +660,26 @@ local function gwaterTab(tabs)
 	snowcount:SetConVar("gwater_snowemissionrate")
 end
 
-
-
-
-concommand.Add("gwater_menu", function()
-	if not gwater then 
-		print("PANIC! UNABLE TO OPEN MENU??")
-		return 
-	end
-	if gwater.Menu then return end
-	
-	local menu = vgui.Create("DFrame")
-	menu:SetTitle("GWater Menu  |  Running addon v" .. (gwater.GetLuaVersion() or "")
-		.. (gwater.HasModule and " and module v" .. gwater.GetModuleVersion() or ""))
+function GWaterCreateMenu(parent)
+	local menu = vgui.Create(parent and "DPanel" or "DFrame", parent)
 	menu:SetSize(640, 360)
 	menu:Center()
-	menu:MakePopup()
+	
+	if not parent then 
+		menu:SetTitle("GWater Menu  |  Running addon v" .. (gwater.GetLuaVersion() or "")
+			.. (gwater.HasModule and " and module v" .. gwater.GetModuleVersion() or ""))
+		menu:MakePopup() 
+	
+		local cs = menu:GetChildren()
+		cs[4]:SetFont("GWaterThicc")
+		cs[4]:SetPos(5, 5)
+	end
+	
+	if parent then menu:Dock(FILL) end
+	
 	menu.Paint = function(self, w, h)
-		if gwater and gwater.Materials["expensive_water"] then
-			surface.SetMaterial(gwater.Materials["expensive_water"])
+		if gwater and gwater.UIWater then
+			surface.SetMaterial(gwater.UIWater)
 			surface.SetDrawColor(255, 255, 255, 50)
 			surface.DrawTexturedRect(0, 0, w, h)
 		end
@@ -623,13 +690,9 @@ concommand.Add("gwater_menu", function()
 		surface.DrawOutlinedRect(0, 0, w, h, 1)
 	end
 	
-	local cs = menu:GetChildren()
-	cs[4]:SetFont("GWaterThicc")
-	cs[4]:SetPos(5, 5)
-	
 	if gwater.ModuleVersionMismatch then
 		local text = language.GetPhrase("gwater_outdated_module")
-		text = string.Replace(text, "(what)", gwater.GetModuleVersionForLua() > gwater.GetModuleVersion() and "addon" or "module")
+		text = string.Replace(text, "(what)", gwater.GetModuleVersionForLua() > gwater.GetModuleVersion() and "module" or "addon")
 		text = string.Replace(text, "(module)", gwater.GetModuleVersion())
 		text = string.Replace(text, "(addon)", gwater.GetModuleVersionForLua())
 		
@@ -646,9 +709,12 @@ concommand.Add("gwater_menu", function()
 		ulabel.Paint = GenericPaint
 		ulabel:SetSize(200, 40)
 		ulabel.DoClick = function()
-			gui.OpenURL("https://github.com/Mee12345/GWater-V3")
+			gui.OpenURL(gwater.GetModuleVersionForLua() > gwater.GetModuleVersion() 
+				and "https://github.com/Mee12345/GWater-V3/releases" 
+				or "https://steamcommunity.com/sharedfiles/filedetails/?id=2700933866")
 		end
-		return
+		
+		return menu
 	end
 	
 	if not gwater.HasModule then
@@ -684,7 +750,7 @@ concommand.Add("gwater_menu", function()
 			end)
 		end
 
-		return
+		return menu
 	end
 	
 	-- tabs
@@ -707,6 +773,17 @@ concommand.Add("gwater_menu", function()
 
 	-- GWater tab
 	gwaterTab(tabs)
+	
+	return menu
+end
+
+concommand.Add("gwater_menu", function()
+	if not gwater then 
+		print("PANIC! UNABLE TO OPEN MENU??")
+		return 
+	end
+	
+	GWaterCreateMenu()
 end)
 
 --if IsValid(LocalPlayer()) and LocalPlayer():Nick() == "AndrewEathan" then RunConsoleCommand("gwater_menu") end

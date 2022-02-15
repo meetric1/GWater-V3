@@ -18,15 +18,17 @@ steady_clock::time_point curtime() {
 }
 
 void FLEX_API::flexSolveThread() {
-	//declarations
-	float simFPS = 1.f / gwaterMap["simulationFramerate"];
-	int simFPS_ms = (int)(simFPS * 1000.f);
-
 	//runs always while sim is active
+
+	NvFlexCopyDesc copyDesc;
+	copyDesc.dstOffset = 0;
+	copyDesc.srcOffset = 0;
+	int waterPhase = NvFlexMakePhase(0, eNvFlexPhaseSelfCollide | eNvFlexPhaseFluid);
 	while (SimValid) {
 		//no work to do yet
+		float fps = 1.f / *flexMap["simFPS"];
 		if (!ParticleCount && !particleQueue.size() || !simTimescale) {
-			sleep(simFPS_ms);
+			sleep(fps * 1000.f);
 			continue;
 		}
 
@@ -34,7 +36,7 @@ void FLEX_API::flexSolveThread() {
 
 		//grab current time vs time it takes to iterate through everything
 		steady_clock::time_point timeStart = curtime();
-		
+
 		//because we are in a buffer lock, the simulation might have already been shut down (even with the while loop check!)
 		if (!SimValid) {
 			bufferMutex->unlock();
@@ -51,13 +53,13 @@ void FLEX_API::flexSolveThread() {
 				//apply data from queue
 				simBuffers->particles[ParticleCount] = particle.pos;
 				simBuffers->velocities[ParticleCount] = particle.vel;
-				simBuffers->phases[ParticleCount] = NvFlexMakePhase(0, eNvFlexPhaseSelfCollide | eNvFlexPhaseFluid);
+				simBuffers->phases[ParticleCount] = waterPhase;
 				simBuffers->activeIndices[ParticleCount] = ParticleCount;
 				ParticleCount++;
 			}
 			particleQueue.clear();
 		}
-		
+
 		//update prop positions (start at 1 because world never moves)
 		for (int i = 1; i < props.size(); i++) {
 			Prop* prop = &props[i];
@@ -81,29 +83,28 @@ void FLEX_API::flexSolveThread() {
 		NvFlexSetVelocities(flexSolver, velocityBuffer, NULL);
 		NvFlexSetPhases(flexSolver, phaseBuffer, NULL);
 		NvFlexSetActive(flexSolver, activeBuffer, NULL);
-		NvFlexSetSprings(flexSolver, indicesBuffer, lengthsBuffer, coefficientsBuffer, SpringCount);
+		NvFlexSetSprings(flexSolver, indicesBuffer, lengthsBuffer, coefficientsBuffer, springCount);
 		NvFlexSetActiveCount(flexSolver, ParticleCount);
-		NvFlexSetShapes(flexSolver, geometryBuffer,	geoPosBuffer, geoQuatBuffer, geoPrevPosBuffer, geoPrevQuatBuffer, geoFlagsBuffer, PropCount);
+		NvFlexSetShapes(flexSolver, geometryBuffer, geoPosBuffer, geoQuatBuffer, geoPrevPosBuffer, geoPrevQuatBuffer, geoFlagsBuffer, PropCount);
 		NvFlexSetParams(flexSolver, flexParams);
 		NvFlexExtSetForceFields(forceFieldData->forceFieldCallback, forceFieldData->forceFieldBuffer, forceFieldData->forceFieldCount);
 
 		//grab end time
-		steady_clock::time_point timeEnd = curtime();
-		milliseconds diff = duration_cast<milliseconds>(timeEnd - timeStart);
+		milliseconds diff = duration_cast<milliseconds>(curtime() - timeStart);
 
 		//tick the solver 
-		NvFlexUpdateSolver(flexSolver, simFPS * 8 * simTimescale + (float)(diff.count()) / 1000.f, 3, false);
+		NvFlexUpdateSolver(flexSolver, fps * 8 * simTimescale + (float)(diff.count()) / 1000.f, 3, false);
 
-		//read back (async)
-		NvFlexGetParticles(flexSolver, particleBuffer, NULL);
-		NvFlexGetVelocities(flexSolver, velocityBuffer, NULL);
-		NvFlexGetPhases(flexSolver, phaseBuffer, NULL);
-		NvFlexGetActive(flexSolver, activeBuffer, NULL);
+		copyDesc.elementCount = ParticleCount;
+		NvFlexGetParticles(flexSolver, particleBuffer, &copyDesc);
+		NvFlexGetVelocities(flexSolver, velocityBuffer, &copyDesc);
+		NvFlexGetPhases(flexSolver, phaseBuffer, &copyDesc);
+		NvFlexGetActive(flexSolver, activeBuffer, &copyDesc);
 
 		//dont forget to unlock our buffer
 		bufferMutex->unlock();
 
 		//sleep until next frame
-		sleep(simFPS_ms);
+		sleep(fps * 1000.f);
 	}
 }

@@ -3,13 +3,19 @@ AddCSLuaFile()
 ENT.Type = "anim"
 ENT.Base = "base_gmodentity"
 
+list.Set("gwater_entities", "gwater_drain", {
+	Category = "Fun with Water",
+	Name = "Drain",
+	Material = "entities/gwater_drain.png"
+})
+
 ENT.Category		= "GWater"
 ENT.PrintName		= "Drain"
 ENT.Author			= "Mee & AndrewEathan (with help from PotatoOS)"
 ENT.Purpose			= "Functional Drain!"
 ENT.Instructions	= ""
-ENT.Spawnable		= true
 ENT.Editable		= true
+ENT.GWaterEntity 	= true
 
 function ENT:Initialize()
 	if CLIENT then return end
@@ -22,6 +28,8 @@ function ENT:Initialize()
 	self:SetUseType(SIMPLE_USE)
 	
 	self.MySound = CreateSound(self, "ambient/atmosphere/pipe1.wav")
+	self.MySound:ChangeVolume(0.5)
+	self.MySound:SetSoundLevel(60)
 	self.MySound:Play()
 	
 	local phys = self:GetPhysicsObject()

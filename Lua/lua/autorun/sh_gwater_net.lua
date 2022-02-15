@@ -8,6 +8,7 @@ if SERVER then
 	util.AddNetworkString("GWATER_SWIMMING")
 	util.AddNetworkString("GWATER_REMOVE")
 	util.AddNetworkString("GWATER_NETWORKMAP")
+	util.AddNetworkString("GWATER_REQUESTCOLOR")
 
 	-- thanks kodya, very cool, speed will be used later in stuff like speed gels
 	-- sadly easy to exploit, but still pretty awesome 
@@ -24,12 +25,6 @@ if SERVER then
 			net.WriteEntity(ply)
 			net.WriteBool(bool)
 		net.Broadcast()
-
-		--[[
-		ply.WantWallCrawling = bool
-		net.Start("WallCrawlingStatus")
-			net.WriteBool(ply.WantWallCrawling)
-		net.Send(ply)]]
 	end)
 
 	net.Receive("GWATER_REMOVE", function(len, ply)
@@ -41,6 +36,11 @@ if SERVER then
 			net.WriteInt(r, 16)
 		net.Broadcast()
 	end)
+
+	net.Receive("GWATER_REQUESTCOLOR", function(len, ply)
+		local col = net.ReadVector()
+		ply.GWATER_COLOR = col
+	end)
 else
 	hook.Add("GWaterPostInitialized", "GWater.Networking", function()
 		local enablenetworking = gwater.Convars["enablenetworking"]
@@ -49,32 +49,31 @@ else
 		--cubes
 		net.Receive("GWATER_SPAWNCUBE", function()
 			if not gwater then return end
-			gwater.NetworkParticleCount = gwater.NetworkParticleCount or 0
 			local owner = net.ReadEntity()
 			local pos = net.ReadVector()
 			local wsize = net.ReadVector()
+			local color = net.ReadVector()
 			local sum = wsize.x + wsize.y + wsize.z
 
 			if sum > 60 then return end
-			if (not enablenetworking:GetBool() or gwater.NetworkParticleCount + sum > netlimit:GetInt()) and owner ~= LocalPlayer() then return end
+			if not enablenetworking:GetBool() and owner != LocalPlayer() then return end
 
-			gwater.NetworkParticleCount = gwater.NetworkParticleCount + sum
-			gwater.SpawnCubeExact(pos, wsize, gwater.GetRadius() * 0.9, Vector(0, 0, 0))
+			gwater.SpawnCube(pos + Vector(0, 0, gwater.GetRadius() * wsize.z), wsize, gwater.GetRadius() * 0.9, Vector(), color)
 		end)
 
 		--spheres
 		net.Receive("GWATER_SPAWNSPHERE", function()
 			if not gwater then return end
-			gwater.NetworkParticleCount = gwater.NetworkParticleCount or 0
 			local owner = net.ReadEntity()
 			local pos = net.ReadVector()
 			local wsize = net.ReadInt(8)
-
+			local color = net.ReadVector()
+			local wsize = net.ReadInt(8)
 			if wsize > 20 then return end
-			if (not enablenetworking:GetBool() or gwater.NetworkParticleCount + wsize * wsize * wsize > netlimit:GetInt()) and owner ~= LocalPlayer() then return end
 
-			gwater.NetworkParticleCount = gwater.NetworkParticleCount + wsize * wsize * wsize
-			gwater.SpawnSphere(pos, wsize, gwater.GetRadius() * 0.9, Vector(0, 0, 0))
+			if not enablenetworking:GetBool() and owner != LocalPlayer() then return end
+
+			gwater.SpawnSphere(pos + Vector(0, 0, gwater.GetRadius() * wsize * 1.5), wsize, gwater.GetRadius() * 0.9, Vector(), color)
 		end)
 
 		--remove
