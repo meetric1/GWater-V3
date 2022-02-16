@@ -68,6 +68,7 @@ LUA_FUNCTION(RenderParticles) {
 	Vector gmodPos;
 	Vector gmodColor;
 	Vector gmodLastColor;
+	gmodLastColor.x = -1.f;
 
 	//we need to optimize the crap out of this because it can run 65 thousand times per frame!
 	for (int i = 0; i < ParticleCount; i++) {

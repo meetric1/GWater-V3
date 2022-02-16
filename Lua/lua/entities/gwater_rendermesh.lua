@@ -21,8 +21,9 @@ local renderMeshes = {}
 function ENT:Initialize()
 	self:DrawShadow(false)	-- enabling this does weird shit because the prop is technically like, 32 thousand units wide and casts a map-wide shadow
 	if CLIENT then
-		self:SetRenderBounds(Vector(-32768, -32768, -32768), Vector(32768, 32768, 32768))	-- just make it render anywhere
 		if gwater and gwater.HasModule then
+			--self:SetRenderBounds(Vector(-32768, -32768, -32768), Vector(32768, 32768, 32768))	-- just make it render anywhere
+			self:SetRenderBoundsWS(Vector(), Vector(), Vector(32768, 32768, 32768))
 			--gwater.SpawnRigidbody(LocalPlayer():GetEyeTrace().HitPos + Vector(0, 0, gwater.GetRadius() * 7), Vector(50, 2, 2), gwater.GetRadius())
 			gwater.SpawnCloth(LocalPlayer():GetEyeTrace().HitPos + Vector(0, 0, gwater.GetRadius() * 5), 46, gwater.GetRadius() * 0.75, 1)
 		end
@@ -30,7 +31,6 @@ function ENT:Initialize()
 	end
 
 	-- put it at 0,0,0 because 0,0,0 needs to be outside the world for the map to compile, and will result in proper lighting
-	self:SetModel("models/Gibs/HGIBS.mdl")
 	self:SetPos(Vector())
 	self:SetAngles(Angle())
 end
@@ -72,7 +72,7 @@ local time = 0
 hook.Add("PostDrawTranslucentRenderables", "GWATER_RENDER_CLOTH", function(drawingDepth, drawingSkybox, isDraw3DSkybox)
 	if not gwater or not gwater.HasModule then return end
 	if gwater:GetTimescale() == 0 then return end
-	time = time % (1 / gwater.GetConfig("simFPS") * 120) + 1
+	time = time % (gwater.GetConfig("simFPS") / 30) + 1
 	if time != 1 then return end
 
 	local positions = gwater.GetClothData()	-- this is expensive as fuck and it would probably help if we updated the mesh every other frame
@@ -97,5 +97,6 @@ hook.Add("PostDrawTranslucentRenderables", "GWATER_RENDER_CLOTH", function(drawi
 			mesh.Quad(positions[cloth][i], positions[cloth][i + 1], positions[cloth][i + 3], positions[cloth][i + 2])
 		end
 		mesh.End()
+		renderMeshes[cloth]:Draw()
 	end
 end)

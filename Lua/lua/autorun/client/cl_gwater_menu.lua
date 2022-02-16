@@ -779,7 +779,7 @@ end
 
 concommand.Add("gwater_menu", function()
 	if not gwater then 
-		print("PANIC! UNABLE TO OPEN MENU??")
+		print("PANIC, MODULE REQUIRED BUT NOT LOADED! (MAYBE RESTART YOUR GAME?)")
 		return 
 	end
 	

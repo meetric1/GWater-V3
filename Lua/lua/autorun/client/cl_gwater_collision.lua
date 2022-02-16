@@ -32,7 +32,7 @@ local sentWhitelist = {
 local dist = -1
 local particleIndex = -1
 local initialMass
-local function handlePhysguns()
+local function handlePhysgun()
 	-- handle physgun
 	if LocalPlayer():IsValid() and LocalPlayer():GetActiveWeapon():IsValid() and LocalPlayer():GetActiveWeapon():GetClass() == "weapon_physgun" then
 		local mouseHeld = LocalPlayer():KeyDown(IN_ATTACK2)
@@ -56,7 +56,9 @@ local function handlePhysguns()
 			end
 		end
 	end
+end
 
+local function handleGravgun()
 	--handle gravgun
 	local plys = ents.FindByClass("player")
 	for k, v in ipairs(plys) do
@@ -202,7 +204,7 @@ hook.Add("GWaterPostInitialized", "GWater.Collision", function()
 	--update props, forcefields, and queue
 	hook.Add("Think", "GWATER_UPDATE_COLLISION", function()
 		-- physgun pickup
-		handlePhysguns()
+		handlePhysgun()
 
 		--SENT queue, to make sure the physprop is valid.
 		for k, v in pairs(sentQueue) do
@@ -245,6 +247,10 @@ hook.Add("GWaterPostInitialized", "GWater.Collision", function()
 			addPropMesh(propQueue[1])
 			table.remove(propQueue, 1)
 		end
+	end)
+
+	timer.Create("GWater.Gravgun", 0.1, 0, function()
+		handleGravgun()
 	end)
 
 	hook.Add("PreCleanupMap", "GWater_CleanMapFix", function()

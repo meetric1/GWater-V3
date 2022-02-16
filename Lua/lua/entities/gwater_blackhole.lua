@@ -46,6 +46,19 @@ function ENT:SpawnFunction(ply, tr, class)
 	return ent
 end
 
+function ENT:Think()
+	if SERVER then return end
+	for k, v in ipairs(gwater.ForceFields) do
+		if v == self then
+			gwater.EditForceField(k - 1, self:GetRadius(), self:GetForceMultiplier() * -500, true, 0)
+			break
+		end
+	end
+
+	self:SetNextClientThink(CurTime() + 1)
+end
+
+
 function ENT:SetupDataTables()
 	self:NetworkVar( "Int",	0, "Radius",	{ KeyName = "Radius",	Edit = { type = "Int", order = 1, min = 100, max = 10000}})
 	self:NetworkVar( "Float",	0, "ForceMultiplier",	{ KeyName = "ForceMultiplier",	Edit = { type = "Float", order = 1, min = -10, max = 10}})

@@ -124,7 +124,6 @@ else
 				gmod_sent_vehicle_fphysics_base = true,
 			}
 
-			gwater.NetworkParticleCount = 0
 			gwater.Meshes = {}
 			gwater.ForceFields = {}
 			gwater.HasModule = true
@@ -145,7 +144,6 @@ else
 		else
 			gwater = {}
 			gwater.HasModule = false
-			gwater.NetworkParticleCount = 0
 			hook.Run("GWaterInitialized")
 			hook.Run("GWaterPostInitialized")
 			gwater.Material = gwater.Materials["water"]
