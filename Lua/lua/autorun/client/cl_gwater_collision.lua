@@ -87,7 +87,7 @@ local function addPropMesh(prop)
 	if allowedBrushEntities[prop:GetClass()] then
 		local finalMesh = {}
 		local surfaces = prop:GetBrushSurfaces()
-		if #surfaces == 0 then return end
+		if !surfaces or #surfaces == 0 then return end
 		--combine all brush surfaces into a convex shape.
 		for k, surfinfo in pairs(surfaces) do
 			local vertices = surfinfo:GetVertices()
