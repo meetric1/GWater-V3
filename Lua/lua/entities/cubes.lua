@@ -19,8 +19,6 @@ for k, v in ipairs(xyz) do
 	ENT.PrintName = "Cube (" .. v.z .. ")"
 	ENT.Category = "GWater"
 	ENT.Author = "Mee & AndrewEathan (with help from PotatoOS)"
-	ENT.GWaterEntity = true
-	ENT.GWaterNotPhysical = true
 	
 	function ENT:SpawnFunction(ply, tr, ClassName)
 		net.Start("GWATER_SPAWNCUBE")

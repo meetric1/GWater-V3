@@ -228,30 +228,19 @@ local function quickControlsTab(tabs)
 	local clear = vgui.Create("DButton", quickcontrol)
 	clear:SetText("Remove all particles")
 	clear:SetPos(170, 70)
-	clear:SetSize(130, 90)
+	clear:SetSize(270, 90)
 	clear.Paint = GenericPaint
 	clear:SetTextColor(Color(100, 200, 200))
 	clear.DoClick = function()
 		psound("buttons/button15.wav")
 		gwater.RemoveAll()
 	end
-	
-	local clear1 = vgui.Create("DButton", quickcontrol)
-	clear1:SetText("Clean lone particles")
-	clear1:SetPos(310, 70)
-	clear1:SetSize(130, 90)
-	clear1.Paint = GenericPaint
-	clear1:SetTextColor(Color(100, 200, 200))
-	clear1.DoClick = function()
-		psound("buttons/button15.wav")
-		gwater.CleanLoneParticles()
-	end
-	
+
 	local radius = vgui.Create("DNumSlider", quickcontrol)
 	radius:SetPos(10, 170)
 	radius:SetSize(600, 20)
 	radius:SetText("Particle Radius")
-	radius:SetMinMax(1, 64)
+	radius:SetMinMax(1, 128)
 	radius:SetValue(gwater.GetRadius())
 	radius:SetDecimals(1)
 	
@@ -424,14 +413,14 @@ local function renderingTab(tabs)
 	end
 	
 	local solve = vgui.Create("DCheckBoxLabel", rendering)
-	solve:SetPos(10, 210)
-	solve:SetText("Enable Simulation")
-	solve:SetConVar("gwater_enablesimulation")
+	solve:SetPos(10, 205)
+	solve:SetText("Enable Diffuse Particles")
+	solve:SetConVar("gwater_renderdiffuse")
 	
 	local checkbox = vgui.Create("DCheckBoxLabel", rendering)
-	checkbox:SetPos(10, 231)
-	checkbox:SetText("Enable Rendering")
-	checkbox:SetConVar("gwater_enablerendering")
+	checkbox:SetPos(10, 225)
+	checkbox:SetText("Enable Alternative Rendering (Faster, but no multiple colors)")
+	checkbox:SetConVar("gwater_enablealtrendering")
 	
 	GWLabel(rendering, "Performance", "GWaterThin", 10, 180)
 	
@@ -451,7 +440,7 @@ local function renderingTab(tabs)
 	maxpart:SetPos(10, 270)
 	maxpart:SetSize(600, 20)
 	maxpart:SetText("Particle Limit")
-	maxpart:SetMinMax(0, 65536)
+	maxpart:SetMinMax(0, 75000)
 	maxpart:SetValue(gwater.GetMaxParticles())
 	maxpart:SetDecimals(0)
 	maxpart.OnValueChanged = function(self, value)
@@ -481,14 +470,6 @@ local function networkingTab(tabs)
 	timescale.OnValueChanged = function(self, value)
 		gwater.SetTimescale(value)
 	end
-	
-	local maxpart = vgui.Create("DNumSlider", networking)
-	maxpart:SetPos(10, 50)
-	maxpart:SetSize(600, 20)
-	maxpart:SetText("Networked Particle Limit")
-	maxpart:SetMinMax(0, 65536)
-	maxpart:SetConVar("gwater_maxnetparticles")
-	maxpart:SetDecimals(0)
 end
 
 local function createConfigButton(tab, cfgname, x, y, w, h, name, desc, range)

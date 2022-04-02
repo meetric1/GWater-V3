@@ -2,7 +2,8 @@
 #include "declarations.h"
 
 #define MAX_COLLIDERS 4096
-#define MAX_PARTICLES 250000
+#define MAX_PARTICLES 75000 //250000
+#define MAX_DIFFUSEPARTICLES 8196
 
 //tysm this was very useful for debugging
 void gjelly_error(NvFlexErrorSeverity type, const char* msg, const char* file, int line) {
@@ -426,7 +427,7 @@ FLEX_API::FLEX_API() {
 
     NvFlexSetSolverDescDefaults(&flexSolverDesc);
     flexSolverDesc.maxParticles = MAX_PARTICLES;
-    flexSolverDesc.maxDiffuseParticles = 0;
+    flexSolverDesc.maxDiffuseParticles = MAX_DIFFUSEPARTICLES;
 
     flexParams = new NvFlexParams();
     initParams();
@@ -436,7 +437,6 @@ FLEX_API::FLEX_API() {
 
     flexSolver = NvFlexCreateSolver(flexLibrary, &flexSolverDesc);
     NvFlexSetParams(flexSolver, flexParams);
-
 
     // Create buffers
     particleBuffer = NvFlexAllocBuffer(flexLibrary, MAX_PARTICLES, sizeof(float4), eNvFlexBufferHost);
@@ -457,9 +457,14 @@ FLEX_API::FLEX_API() {
     lengthsBuffer = NvFlexAllocBuffer(flexLibrary, MAX_PARTICLES * 2, sizeof(float), eNvFlexBufferHost);
     coefficientsBuffer = NvFlexAllocBuffer(flexLibrary, MAX_PARTICLES * 2, sizeof(float), eNvFlexBufferHost);
 
+    //diffuse buffers (64 diffuse particles max)
+    diffusePosBuffer = NvFlexAllocBuffer(flexLibrary, MAX_DIFFUSEPARTICLES, sizeof(float4), eNvFlexBufferHost);
+    diffuseSingleBuffer = NvFlexAllocBuffer(flexLibrary, 1, sizeof(int), eNvFlexBufferHost);    // whole fucking buffer just for an int, I understand why, but its a huge pain
+
     // Host buffer
     particleBufferHost = static_cast<float4*>(malloc(sizeof(float4) * MAX_PARTICLES));
-    velocityBufferHost = static_cast<float3*>(malloc(sizeof(float3) * MAX_PARTICLES));
+    diffuseBufferHost = static_cast<float4*>(malloc(sizeof(float4) * MAX_DIFFUSEPARTICLES));
+    
 
     //create buffer for the thread
     bufferMutex = new std::mutex();
@@ -504,13 +509,16 @@ FLEX_API::~FLEX_API() {
         NvFlexFreeBuffer(lengthsBuffer);
         NvFlexFreeBuffer(coefficientsBuffer);
 
+        NvFlexFreeBuffer(diffusePosBuffer);
+        NvFlexFreeBuffer(diffuseSingleBuffer);
+
         NvFlexExtDestroyForceFieldCallback(forceFieldData->forceFieldCallback);
 
         delete forceFieldData;
         delete flexParams;
 
         free(particleBufferHost);
-        free(velocityBufferHost);
+        free(diffuseBufferHost);
 
         //shutdown library
         NvFlexDestroySolver(flexSolver);

@@ -25,7 +25,6 @@ function ENT:Initialize()
 		WireLib.CreateOutputs(self, {"Active"})
 	end
 	
-	self.FlowSound = CreateSound(self, "ambient/water/water_flow_loop1.wav")
 	self:SetModel("models/props_wasteland/prison_sinkchunk001e.mdl")
 	
 	self:PhysicsInit(SOLID_VPHYSICS)
@@ -57,7 +56,6 @@ function ENT:TurnOn()
 	self.Running = true
 	self:SetNWBool("Running", true)
 	self:EmitSound("buttons/lever1.wav")
-	self.FlowSound:Play()
 	
 	if WireLib then Wire_TriggerOutput(self, "Active", 1) end
 end
@@ -68,7 +66,6 @@ function ENT:TurnOff()
 	self.Running = false
 	self:SetNWBool("Running", false)
 	self:EmitSound("buttons/lever1.wav")
-	self.FlowSound:Stop()
 	
 	if WireLib then Wire_TriggerOutput(self, "Active", 0) end
 end
@@ -79,13 +76,6 @@ function ENT:Use()
 	else
 		self:TurnOn()
 	end
-end
-
-function ENT:OnRemove()
-	if CLIENT then return end
-	
-	self.FlowSound:Stop()
-	self.FlowSound = nil
 end
 
 function ENT:Think()
@@ -100,6 +90,8 @@ function ENT:Think()
 		local drawColor = self:GetColor():ToVector()
 		if drawColor == Vector(1, 1, 1) then
 			drawColor = Vector(0.75, 1, 2)
+		else
+			drawColor = drawColor * 2
 		end
 
 		gwater.SpawnParticle(pos + VectorRand(-2, 2), ang:Forward() * 25 + VectorRand(-1, 1) / 4 + vel / 6, drawColor)

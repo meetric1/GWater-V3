@@ -16,10 +16,11 @@ extern GarrysMod::Lua::ILuaBase* GlobalLUA;
 
 extern std::mutex* bufferMutex;
 extern float4* particleBufferHost;
-extern float3* velocityBufferHost;
+extern float4* diffuseBufferHost;
 
 extern float simTimescale;
 extern int ParticleCount;
+extern int diffuseCount;
 extern int PropCount;
 extern bool SimValid;
 extern int RenderDistance;

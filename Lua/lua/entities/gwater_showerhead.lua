@@ -15,8 +15,6 @@ ENT.Author			= "Mee & AndrewEathan (with help from PotatoOS)"
 ENT.Purpose			= "Functional GWater showerhead!"
 ENT.Instructions	= ""
 ENT.Editable		= true
-ENT.GWaterEntity 	= true
-ENT.SpawnOffset		= Vector(0, 0, 12)
 
 function ENT:Initialize()
 	self.Running = false
@@ -33,8 +31,6 @@ function ENT:Initialize()
 	self:SetMoveType(MOVETYPE_VPHYSICS)
 	self:SetSolid(SOLID_VPHYSICS)
 	self:SetUseType(SIMPLE_USE)
-
-	self.FlowSound = CreateSound(self, "ambient/water/water_flow_loop1.wav")
 end
 
 function ENT:SpawnFunction(ply, tr, class)
@@ -78,7 +74,6 @@ function ENT:TurnOn()
 	self.Running = true
 	self:SetNWBool("Running", true)
 	self:EmitSound("buttons/lever1.wav")
-	self.FlowSound:Play()
 	
 	Wire_TriggerOutput(self, "Active", 1)
 end
@@ -89,7 +84,6 @@ function ENT:TurnOff()
 	self.Running = false
 	self:SetNWBool("Running", false)
 	self:EmitSound("buttons/lever1.wav")
-	self.FlowSound:Stop()
 	
 	Wire_TriggerOutput(self, "Active", 0)
 end
@@ -100,13 +94,6 @@ function ENT:Use()
 	else
 		self:TurnOn()
 	end
-end
-
-function ENT:OnRemove()
-	if CLIENT then return end
-	
-	self.FlowSound:Stop()
-	self.FlowSound = nil
 end
 
 function ENT:Think()
@@ -123,6 +110,8 @@ function ENT:Think()
 		local drawColor = self:GetColor():ToVector()
 		if drawColor == Vector(1, 1, 1) then
 			drawColor = Vector(0.75, 1, 2)
+		else
+			drawColor = drawColor * 2
 		end
 
 		for i = 0, ppe do

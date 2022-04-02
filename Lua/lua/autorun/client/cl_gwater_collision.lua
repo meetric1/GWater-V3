@@ -28,46 +28,6 @@ local sentWhitelist = {
 
 }
 
-
-local dist = -1
-local particleIndex = -1
-local initialMass
-local function handlePhysgun()
-	-- handle physgun
-	if LocalPlayer():IsValid() and LocalPlayer():GetActiveWeapon():IsValid() and LocalPlayer():GetActiveWeapon():GetClass() == "weapon_physgun" then
-		local mouseHeld = LocalPlayer():KeyDown(IN_ATTACK2)
-		local fwd = LocalPlayer():EyePos() + LocalPlayer():EyeAngles():Forward() * dist
-
-		if dist == -1 and mouseHeld then
-			local newDist, pos, index = gwater.TraceLine(LocalPlayer():EyePos(), LocalPlayer():EyeAngles():Forward())
-			if newDist > 0 then 
-				initialMass = gwater.SetParticlePos(index, fwd, 1 / 50000)
-				particleIndex = index
-				dist = newDist
-			end
-		end
-		
-		if dist > 0 then
-			if mouseHeld then
-				gwater.SetParticlePos(particleIndex, fwd, 1 / 50000)
-			else
-				gwater.SetParticlePos(particleIndex, fwd, initialMass)
-				dist = -1
-			end
-		end
-	end
-end
-
-local function handleGravgun()
-	--handle gravgun
-	local plys = ents.FindByClass("player")
-	for k, v in ipairs(plys) do
-		if v:IsValid() and v:GetActiveWeapon():IsValid() and v:GetActiveWeapon():GetClass() == "weapon_physcannon" and v:KeyDown(IN_ATTACK2) then
-			gwater.ApplyForceOutwards(v:EyePos() + v:EyeAngles():Forward() * 125 + Vector(0, 0, 10), -15, 100, false);
-		end
-	end
-end
-
 local function addPropMesh(prop)
 	if #gwater.Meshes > MAX_COLLISIONS then print("[GWATER]: Max mesh limit reached!") return end
 	if not prop or not prop:IsValid() then return end
@@ -204,7 +164,6 @@ hook.Add("GWaterPostInitialized", "GWater.Collision", function()
 	--update props, forcefields, and queue
 	hook.Add("Think", "GWATER_UPDATE_COLLISION", function()
 		-- physgun pickup
-		handlePhysgun()
 
 		--SENT queue, to make sure the physprop is valid.
 		for k, v in pairs(sentQueue) do
@@ -247,10 +206,6 @@ hook.Add("GWaterPostInitialized", "GWater.Collision", function()
 			addPropMesh(propQueue[1])
 			table.remove(propQueue, 1)
 		end
-	end)
-
-	timer.Create("GWater.Gravgun", 0.1, 0, function()
-		handleGravgun()
 	end)
 
 	hook.Add("PreCleanupMap", "GWater_CleanMapFix", function()

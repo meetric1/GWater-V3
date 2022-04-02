@@ -16,10 +16,9 @@ void FLEX_API::addCloth(float3 pos, int width, float radius, float stiffness, fl
     unmapBuffers();
 }
 
-
-void FLEX_API::addRigidbody(float3 lower, int dimx, int dimy, int dimz, float radius, float3 velocity, float mass) {
+void FLEX_API::addRigidbody(float3 lower, int dimx, int dimy, int dimz, float radius, float3 velocity, float mass, bool constraints) {
     mapBuffers();
-    CreateParticleGrid(lower - float3(dimx, dimy, dimz) * radius / 2, dimx, dimy, dimz, radius, velocity, mass, clothPhase);
+    CreateParticleGrid(lower - float3(dimx, dimy, dimz) * radius / 2, dimx, dimy, dimz, radius, velocity, mass, clothPhase, constraints);
     unmapBuffers();
 }
 

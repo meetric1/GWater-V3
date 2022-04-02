@@ -5,6 +5,7 @@ AddCSLuaFile()
 if SERVER then
 	util.AddNetworkString("GWATER_SPAWNCUBE")
 	util.AddNetworkString("GWATER_SPAWNSPHERE")
+	util.AddNetworkString("GWATER_SPAWNCLOTH")
 	util.AddNetworkString("GWATER_SWIMMING")
 	util.AddNetworkString("GWATER_REMOVE")
 	util.AddNetworkString("GWATER_NETWORKMAP")
@@ -55,7 +56,6 @@ else
 			local color = net.ReadVector()
 			local sum = wsize.x + wsize.y + wsize.z
 
-			if sum > 60 then return end
 			if not enablenetworking:GetBool() and owner != LocalPlayer() then return end
 
 			gwater.SpawnCube(pos + Vector(0, 0, gwater.GetRadius() * wsize.z), wsize, gwater.GetRadius() * 0.9, Vector(), color)
@@ -69,10 +69,27 @@ else
 			local wsize = net.ReadInt(8)
 			local color = net.ReadVector()
 			
-			if wsize > 20 then return end
 			if not enablenetworking:GetBool() and owner != LocalPlayer() then return end
 
 			gwater.SpawnSphere(pos + Vector(0, 0, gwater.GetRadius() * wsize * 1.5), wsize, gwater.GetRadius() * 0.9, Vector(), color)
+		end)
+
+		--cloth
+		net.Receive("GWATER_SPAWNCLOTH", function()
+			if not gwater or not gwater.HasModule then return end
+			local owner = net.ReadEntity()
+			local pos = net.ReadVector()
+			local wsize = net.ReadUInt(2)
+
+			if not enablenetworking:GetBool() and owner != LocalPlayer() then return end
+
+			if wsize == 0 then
+				gwater.SpawnCloth(pos + Vector(0, 0, gwater.GetRadius() * 5), 50, gwater.GetRadius() * 0.75, 1)
+			elseif wsize == 1 then
+				gwater.SpawnRigidbody(pos + Vector(0, 0, gwater.GetRadius() * 6), Vector(10, 10, 10), gwater.GetRadius(), true)
+			else
+				gwater.SpawnRigidbody(pos + Vector(0, 0, gwater.GetRadius() * 5), Vector(10, 10, 10), gwater.GetRadius(), false)
+			end
 		end)
 
 		--remove

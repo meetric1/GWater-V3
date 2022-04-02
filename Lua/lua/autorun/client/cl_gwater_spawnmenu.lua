@@ -95,7 +95,7 @@ spawnmenu.AddContentType("gwater_entity", function(container, obj)
 	icon:SetColor(Color(0, 0, 0, 255))
 	
 	icon.DoClick = function()
-		RunConsoleCommand("gwater_spawn_entity", obj.spawnname)
+		RunConsoleCommand("gm_spawnsent", obj.spawnname)
 		surface.PlaySound("ui/buttonclickrelease.wav")
 	end
 	

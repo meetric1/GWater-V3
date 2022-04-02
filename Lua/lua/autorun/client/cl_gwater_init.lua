@@ -32,7 +32,7 @@ hook.Add("GWaterPostInitialized", "GWater.Startup", function()
     end)
 
     -- rendering
-    local rendercvar = gwater.Convars["enablerendering"]
+    local rendercvar = gwater.Convars["enablealtrendering"]
     local fov = LocalPlayer():GetFOV()
 
     local drawSprite = render.DrawSprite
@@ -51,29 +51,85 @@ hook.Add("GWaterPostInitialized", "GWater.Startup", function()
     function GWater_SetDrawColor(color)
         currentWatermat:SetVector(refractInt, color)
     end
-	
-    hook.Add("PostDrawTranslucentRenderables", "GWATER_RENDER", function(drawingDepth, drawingSkybox, isDraw3DSkybox)
-        if drawingSkybox then return end
-        if not rendercvar:GetBool() then return end
-        local override = 1
-        if gwater.Material == gwater.Materials["water"] then
-            override = 1.5
-        elseif gwater.Material == gwater.Materials["expensive_water"] then
-            override = 0.6
+
+    -- alternative rendering
+    local meshes = {}
+    local function refreshMeshes()
+        local ppm = 8192    -- particles per mesh
+        local i = 0
+        while true do   -- refresh forever
+            coroutine.yield()
+            
+            local data = gwater.GetSkewedData()
+            if #data == 0 then 
+                for k, v in ipairs(meshes) do
+                    v:Destroy()
+                    meshes[k] = nil
+                end
+                i = 1
+                continue 
+            end
+
+            if not meshes[i] then 
+                meshes[i] = Mesh()
+            else
+                meshes[i]:Destroy()
+                meshes[i] = Mesh()
+            end
+
+            -- generate our mesh
+            local radius = gwater.GetRadius() * 1.5
+            local eyeForward = EyeAngles():Forward()
+            mesh.Begin(meshes[i], MATERIAL_QUADS, ppm) -- lets start making the static mesh
+            local _, err = pcall(function()
+            for vertex = (i - 1) * ppm + 1, #data do
+                if !data[vertex] or vertex > ppm * i then break end
+
+                mesh.QuadEasy(data[vertex], eyeForward, radius, radius)
+
+                if vertex >= #data then 
+                    i = 0  -- its gonna add 1 to 'i' right after this
+                end
+            end
+            end)
+            if err then print(err) end
+            mesh.End()
+            i = i + 1
         end
 
-        render.SetMaterial(gwater.Material)
+        print("if this runs you better pray to jesus")
+    end
 
-        local eye = EyeAngles()
-        local forward = eye:Forward() * math.atan((fov / 45) / 1) * 1.5
-        local dir1 = forward + eye:Right()
-        local dir2 = forward - eye:Right()
-        local dir3 = forward + eye:Up() * 2
-        local dir4 = forward - eye:Up() * 2
+    local drawcoro = coroutine.create(refreshMeshes)
+    hook.Add("PostDrawTranslucentRenderables", "GWATER_RENDER", function(drawingDepth, drawingSkybox, isDraw3DSkybox)
+        if drawingSkybox then return end
+        if not rendercvar:GetBool() then
+            local override = 1
+            if gwater.Material == gwater.Materials["water"] then
+                override = 1.5
+            elseif gwater.Material == gwater.Materials["expensive_water"] then
+                override = 0.6
+            end
 
-        local origColor = gwater.Material:GetVector("$refracttint")
-        currentWatermat = gwater.Material
-        gwater.RenderParticles(override, EyePos(), dir1, dir2, dir3, dir4)
-        gwater.Material:SetVector("$refracttint", origColor)
+            render.SetMaterial(gwater.Material)
+
+            local eye = EyeAngles()
+            local forward = eye:Forward() * math.atan((fov / 45) / 1) * 1.5 -- hacky non accurate fov calculation
+            local dir1 = forward + eye:Right()
+            local dir2 = forward - eye:Right()
+            local dir3 = forward + eye:Up() * 2
+            local dir4 = forward - eye:Up() * 2
+
+            local origColor = gwater.Material:GetVector("$refracttint")
+            currentWatermat = gwater.Material
+            gwater.RenderParticles(gwater.Convars["renderdiffuse"]:GetBool(), override, EyePos(), dir1, dir2, dir3, dir4)
+            gwater.Material:SetVector("$refracttint", origColor)
+        else
+            coroutine.resume(drawcoro)
+            render.SetMaterial(gwater.Material)
+            for k, v in ipairs(meshes) do
+                v:Draw()
+            end
+        end
     end)
 end)

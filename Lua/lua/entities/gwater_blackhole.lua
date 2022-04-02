@@ -5,7 +5,8 @@ ENT.Type			= "anim"
 list.Set("gwater_entities", "gwater_blackhole", {
 	Category = "Fun with Water",
 	Name = "Black Hole",
-	Material = "entities/gwater_blackhole.png"
+	Material = "entities/gwater_blackhole.png",
+	AdminOnly = true
 })
 
 ENT.Category		= "GWater"
@@ -15,8 +16,6 @@ ENT.Purpose			= "GWater Blackhole! (only works on water)"
 ENT.Instructions	= ""
 ENT.AdminOnly 		= true
 ENT.Editable		= true
-ENT.GWaterEntity 	= true
-ENT.SpawnOffset		= Vector(0, 0, 18)
 
 
 function ENT:Initialize()
@@ -33,13 +32,7 @@ end
 function ENT:SpawnFunction(ply, tr, class)
 	if not tr.Hit then return end
 	local ent = ents.Create(class)
-	ent:SetModel("models/hunter/misc/sphere075x075.mdl")
-	ent:SetMaterial("lights/white")
-	ent:SetColor(Color(0,0,0))
-	ent:PhysicsInit(SOLID_VPHYSICS)
-	ent:SetMoveType(MOVETYPE_VPHYSICS)
-	ent:SetSolid(SOLID_VPHYSICS)
-	ent:SetPos(tr.HitPos + tr.HitNormal * 10)
+	ent:SetPos(tr.HitPos + tr.HitNormal * 50)
 	ent:Spawn()
 	ent:Activate()
 
@@ -47,7 +40,7 @@ function ENT:SpawnFunction(ply, tr, class)
 end
 
 function ENT:Think()
-	if SERVER then return end
+	if SERVER or not gwater or not gwater.HasModule then return end
 	for k, v in ipairs(gwater.ForceFields) do
 		if v == self then
 			gwater.EditForceField(k - 1, self:GetRadius(), self:GetForceMultiplier() * -500, true, 0)

@@ -15,8 +15,6 @@ ENT.Author			= "Mee & AndrewEathan (with help from PotatoOS)"
 ENT.Purpose			= "wtflol"
 ENT.Instructions	= ""
 ENT.Spawnable		= false
-ENT.GWaterEntity 	= true
-ENT.SpawnOffset		= Vector(0, 0, 47)
 
 function ENT:Initialize()
 	self.Running = false
@@ -27,7 +25,6 @@ function ENT:Initialize()
 		WireLib.CreateOutputs(self, {"Active"})
 	end
 	
-	self.FlowSound = CreateSound(self, "ambient/water/water_flow_loop1.wav")
 	self:SetModel("models/props_c17/FurnitureToilet001a.mdl")
 	
 	self:PhysicsInit(SOLID_VPHYSICS)
@@ -59,7 +56,6 @@ function ENT:TurnOn()
 	self.Running = true
 	self:SetNWBool("Running", true)
 	self:EmitSound("buttons/lever1.wav")
-	self.FlowSound:Play()
 	
 	if WireLib then Wire_TriggerOutput(self, "Active", 1) end
 end
@@ -70,7 +66,6 @@ function ENT:TurnOff()
 	self.Running = false
 	self:SetNWBool("Running", false)
 	self:EmitSound("buttons/lever1.wav")
-	self.FlowSound:Stop()
 	
 	if WireLib then Wire_TriggerOutput(self, "Active", 0) end
 end
@@ -83,13 +78,6 @@ function ENT:Use()
 	end
 end
 
-function ENT:OnRemove()
-	if CLIENT then return end
-	
-	if not IsValid(self.FlowSound) then return end
-	self.FlowSound:Stop()
-	self.FlowSound = nil
-end
 
 function ENT:Think()
 	if SERVER then return end

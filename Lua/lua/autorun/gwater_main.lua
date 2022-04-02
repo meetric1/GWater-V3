@@ -125,6 +125,7 @@ else
 			}
 
 			gwater.Meshes = {}
+			gwater.renderMeshes = {}
 			gwater.ForceFields = {}
 			gwater.HasModule = true
 			hook.Run("GWaterInitialized")

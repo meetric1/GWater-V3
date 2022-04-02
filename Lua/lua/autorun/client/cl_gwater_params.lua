@@ -122,6 +122,15 @@ hook.Add("GWaterInitialized", "GWater.Params", function()
 			default = 0.5,
 			min = 0,
 			max = 10
+		},
+		simFPS = {
+			prettyname = "Simulation FPS",
+			name = "simFPS",
+			desc = "How many times per second the simulation runs",
+			default = 60,
+			min = 10,
+			max = 120,
+			decimals = 0
 		}
 	}
 

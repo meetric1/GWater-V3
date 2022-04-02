@@ -93,9 +93,9 @@ if CLIENT then
 	local draw_text_outlined = draw.SimpleTextOutlined
 	local rect = surface.DrawRect
 		
-	local paintfun = function(self, w, h, v, owner)
+	local paintfun = function(self, w, h, v, owner, hy, k)
 		if not IsValid(v) then
-			table.remove(v.ConnectedEntities, k)
+			table.remove(hy.ConnectedEntities, k)
 			return
 		end
 		
@@ -201,8 +201,8 @@ if CLIENT then
 			local btn = vgui.Create("DImageButton")
 			btn:SetSize(128, 128)
 			
-			btn.Paint = function(self, w, h)
-				paintfun(self, w, h, v, owner)
+			btn.Paint = function(self2, w, h)
+				paintfun(self2, w, h, v, owner, self, k)
 			end
 			
 			function btn:DoClick()
@@ -220,8 +220,8 @@ if CLIENT then
 			btn:SetSize(128, 128)
 			local owner = v.CPPIGetOwner and v:CPPIGetOwner() or Entity(0)
 			
-			btn.Paint = function(self, w, h)
-				paintfun(self, w, h, v, owner)
+			btn.Paint = function(self2, w, h)
+				paintfun(self2, w, h, v, owner, self, k)
 			end
 			
 			function btn:DoClick()

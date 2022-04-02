@@ -24,6 +24,7 @@ void FLEX_API::flexSolveThread() {
 	copyDesc.dstOffset = 0;
 	copyDesc.srcOffset = 0;
 	int waterPhase = NvFlexMakePhase(0, eNvFlexPhaseSelfCollide | eNvFlexPhaseFluid);
+	int particleLoop = 0;
 	while (SimValid) {
 		//no work to do yet
 		float fps = 1.f / *flexMap["simFPS"];
@@ -48,7 +49,17 @@ void FLEX_API::flexSolveThread() {
 		//loop through queue and add requested particles	(AndrewEathan was here)
 		if (particleQueue.size()) {
 			for (Particle& particle : particleQueue) {
-				if (ParticleCount >= flexSolverDesc.maxParticles) break;
+				if (ParticleCount >= flexSolverDesc.maxParticles) {
+					if (flexSolverDesc.maxParticles <= 0) break; 
+
+					int offset = (ParticleCount + particleLoop) % flexSolverDesc.maxParticles;
+					simBuffers->particles[offset] = particle.pos;
+					simBuffers->velocities[offset] = particle.vel;
+					simBuffers->phases[offset] = waterPhase;
+					simBuffers->activeIndices[offset] = offset;
+					particleLoop = (particleLoop + 1) % flexSolverDesc.maxParticles;
+					continue;
+				}
 
 				//apply data from queue
 				simBuffers->particles[ParticleCount] = particle.pos;
@@ -89,6 +100,8 @@ void FLEX_API::flexSolveThread() {
 		NvFlexSetParams(flexSolver, flexParams);
 		NvFlexExtSetForceFields(forceFieldData->forceFieldCallback, forceFieldData->forceFieldBuffer, forceFieldData->forceFieldCount);
 
+		//NvFlexSetDiffuseParticles(flexSolver, diffusePosBuffer, diffuseVelBuffer, diffuseCount);
+
 		//grab end time
 		milliseconds diff = duration_cast<milliseconds>(curtime() - timeStart);
 
@@ -100,6 +113,15 @@ void FLEX_API::flexSolveThread() {
 		NvFlexGetVelocities(flexSolver, velocityBuffer, &copyDesc);
 		NvFlexGetPhases(flexSolver, phaseBuffer, &copyDesc);
 		NvFlexGetActive(flexSolver, activeBuffer, &copyDesc);
+		NvFlexGetDiffuseParticles(flexSolver, diffusePosBuffer, NULL, diffuseSingleBuffer);
+
+		// get diffuse particles data (we never set it)
+		int* particleCount = (int*)NvFlexMap(diffuseSingleBuffer, eNvFlexMapWait);
+		float4* particlePos = (float4*)NvFlexMap(diffusePosBuffer, eNvFlexMapWait);
+		diffuseCount = particleCount[0];
+		memcpy(diffuseBufferHost, particlePos, sizeof(float4) * diffuseCount);
+		NvFlexUnmap(diffuseSingleBuffer);
+		NvFlexUnmap(diffusePosBuffer);
 
 		//dont forget to unlock our buffer
 		bufferMutex->unlock();

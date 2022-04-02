@@ -101,8 +101,8 @@ void FLEX_API::CreateSpringGrid(float3 lower, int dx, int dy, float radius, int 
 }
 
 
-// FOR RIGIDBODIES
-void FLEX_API::CreateParticleGrid(float3 lower, int dimx, int dimy, int dimz, float radius, float3 velocity, float mass, int phase) {
+// FOR SOFTBODIES (kinda garbage ingame)
+void FLEX_API::CreateParticleGrid(float3 lower, int dimx, int dimy, int dimz, float radius, float3 velocity, float mass, int phase, bool constraints) {
     int baseIndex = ParticleCount;
 
     for (int z = 0; z < dimz; ++z)
@@ -138,18 +138,20 @@ void FLEX_API::CreateParticleGrid(float3 lower, int dimx, int dimy, int dimz, fl
                 const int index0 = baseIndex + (z * dimy * dimx + y * dimx + x);
                 if (index0 >= flexSolverDesc.maxParticles) break;
 
-                // create springs to all the neighbors within the width
-                for (int i = x - width; i <= x + width; ++i)
-                {
-                    for (int j = y - width; j <= y + width; ++j)
+                if (constraints) {
+                    // create springs to all the neighbors within the width
+                    for (int i = x - width; i <= x + width; ++i)
                     {
-                        for (int k = z - width; k <= z + width; ++k)
+                        for (int j = y - width; j <= y + width; ++j)
                         {
-                            if (i < 0 || i >= dimx) continue;
-                            if (j < 0 || j >= dimy) continue;
-                            if (k < 0 || k >= dimz) continue;
-                            const int neighborIndex = baseIndex + (k * dimy * dimx + j * dimx + i);
-                            CreateSpring(index0, neighborIndex, 1.f);
+                            for (int k = z - width; k <= z + width; ++k)
+                            {
+                                if (i < 0 || i >= dimx) continue;
+                                if (j < 0 || j >= dimy) continue;
+                                if (k < 0 || k >= dimz) continue;
+                                const int neighborIndex = baseIndex + (k * dimy * dimx + j * dimx + i);
+                                CreateSpring(index0, neighborIndex, 1.f);
+                            }
                         }
                     }
                 }

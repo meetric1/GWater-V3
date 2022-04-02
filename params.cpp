@@ -51,11 +51,12 @@ void FLEX_API::initParams() {
 	flexParams->surfaceTension = 0.0f;
 	flexParams->vorticityConfinement = 0.0f;
 	flexParams->buoyancy = 1.0f;
-	flexParams->diffuseThreshold = 0.0f;
-	flexParams->diffuseBuoyancy = 0.0f;
-	flexParams->diffuseDrag = 0.0f;
+
+	flexParams->diffuseThreshold = 3.f;
+	flexParams->diffuseBuoyancy = 1.f;
+	flexParams->diffuseDrag = 0.8;
 	flexParams->diffuseBallistic = 0;
-	flexParams->diffuseLifetime = 0.0f;
+	flexParams->diffuseLifetime = 30.0f;
 
 	// planes created after particles
 	flexParams->planes[0][0] = 0.f;

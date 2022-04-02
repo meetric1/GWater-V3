@@ -12,12 +12,12 @@ hook.Add("GWaterPostInitialized", "GWater.Stubs", function()
 
 	local emitter = ParticleEmitter(Vector())
 	function gwater.SpawnParticle(pos, vel)
-	    local part = emitter:Add("particle/particle_glow_04", pos) 
+	    local part = emitter:Add("!GWater_ExpensiveWater", pos) 
 	    if part then
 	        part:SetDieTime(10)
 	        part:SetStartAlpha(230) 
 	        part:SetEndAlpha(100) 
-	        part:SetStartSize(10) 
+	        part:SetStartSize(7.5) 
 	        part:SetEndSize(1) 
 	        part:SetGravity(Vector( 0, 0, -600 )) 
 	        part:SetVelocity(vel * 8) 
@@ -27,34 +27,17 @@ hook.Add("GWaterPostInitialized", "GWater.Stubs", function()
 	    end
 	end
 
-	function gwater.SpawnCube(pos, size, apart, vel)
-		local spawnparticle = gwater.SpawnParticle
-		for z = -size.z, size.z do
-			for y = -size.y, size.y do
-				for x = -size.x, size.x do
-					local pos1 = Vector(pos.x + x * apart, pos.y + y * apart, pos.z + z * apart)
-					spawnparticle(pos1, vel)
-				end
-			end
-		end
-	end
-
 	function gwater.GetRadius()
 		return 10
 	end
 
-	-- who cares about the difference
-	gwater.SpawnCubeExact = gwater.SpawnCube
-
-	--too lazy to write this lmao
-	function gwater.SpawnSphere(pos, radius, apart, vel)
-
-	end
-
+	gwater.SpawnCubeExact = no_op
+	gwater.SpawnCube = no_op
 	gwater.Blackhole = no_op
 	gwater.ApplyForce = no_op
 	gwater.ApplyForceOutwards = no_op
 	gwater.RemoveAll = no_op
+	gwater.SpawnSphere = no_op
 
 	print("[GWATER]: Loaded stub functions!")
 end)

@@ -10,10 +10,11 @@ GarrysMod::Lua::ILuaBase* GlobalLUA;
 
 std::mutex* bufferMutex;
 float4* particleBufferHost;
-float3* velocityBufferHost;
+float4* diffuseBufferHost;
 
 float simTimescale = 1;
 int ParticleCount = 0;
+int diffuseCount = 0;
 int PropCount = 0;
 bool SimValid = true;
 int RenderDistance = pow(5000, 2);
@@ -46,6 +47,7 @@ LUA_FUNCTION(RenderParticles) {
 	LUA->CheckType(-4, Type::Vector);	//dir up
 	LUA->CheckType(-5, Type::Vector);	//eye pos
 	LUA->CheckType(-6, Type::Number);	//override
+	LUA->CheckType(-7, Type::Bool);	//render diffuse?
 
 	if (ParticleCount < 1) return 0;
 
@@ -56,6 +58,7 @@ LUA_FUNCTION(RenderParticles) {
 	float3 eyePos = LUA->GetVector(-5);
 
 	// draw sprite or sphere?
+	bool renderDiffuse = LUA->GetBool(-7);
 	float overrideNum = static_cast<float>(LUA->GetNumber(-6));
 	float particleRadius = FLEX_Simulation->radius * overrideNum;
 	const char* overrideString = overrideNum != 0.6f ? "GWater_DrawSprite" : "GWater_DrawSphere";
@@ -106,6 +109,49 @@ LUA_FUNCTION(RenderParticles) {
 		LUA->GetField(-1, overrideString);
 		LUA->PushVector(gmodPos);
 		LUA->PushNumber(particleRadius);
+		LUA->Call(2, 0);	//pops literally everything above except _G
+	}
+
+	if (!renderDiffuse) {
+		LUA->Pop(1);
+		FLEX_Simulation->flexParams->diffuseLifetime = 0.f;
+		return 0;
+	}
+	else {
+		FLEX_Simulation->flexParams->diffuseLifetime = 30.f;
+	}
+
+	// now render diffuse particles!
+	gmodColor.x = gmodColor.x + 0.5;
+	gmodColor.y = gmodColor.y + 0.5;
+	gmodColor.z = gmodColor.z + 0.5;
+	LUA->GetField(-1, "GWater_SetDrawColor");
+	LUA->PushVector(gmodColor);
+	LUA->Call(1, 0);
+
+	for (int i = 0; i < diffuseCount; i++) {
+		particlePos = diffuseBufferHost[i];
+		particleMinusPos = float3(particlePos) - eyePos;
+
+		if (particlePos.w < 1) continue;
+
+		if (
+			Dot(particleMinusPos, directionArray[0]) < 0 ||
+			Dot(particleMinusPos, directionArray[1]) < 0 ||
+			Dot(particleMinusPos, directionArray[2]) < 0 ||
+			Dot(particleMinusPos, directionArray[3]) < 0
+		) continue;
+
+		if (DistanceSquared(particlePos, eyePos) > RenderDistance) continue;
+
+		gmodPos.x = particlePos.x;
+		gmodPos.y = particlePos.y;
+		gmodPos.z = particlePos.z;
+
+		//draws the sprite
+		LUA->GetField(-1, overrideString);
+		LUA->PushVector(gmodPos);
+		LUA->PushNumber((particlePos.w / 120.f) * particleRadius);
 		LUA->Call(2, 0);	//pops literally everything above except _G
 	}
 
@@ -411,6 +457,7 @@ LUA_FUNCTION(SpawnRigidbody) {
 	LUA->CheckType(1, Type::Vector); // pos
 	LUA->CheckType(2, Type::Vector); // width
 	LUA->CheckType(3, Type::Number); // how close apart particles are
+	LUA->CheckType(4, Type::Bool);	// constraint force
 	//LUA->CheckType(4, Type::Number); // mass
 	bufferMutex->lock();
 	if (!SimValid) {
@@ -419,7 +466,7 @@ LUA_FUNCTION(SpawnRigidbody) {
 	}
 
 	float3 rigidRes = LUA->GetVector(2);
-	FLEX_Simulation->addRigidbody(LUA->GetVector(1), rigidRes.x, rigidRes.y, rigidRes.z, LUA->GetNumber(3), float3(), 10.f);
+	FLEX_Simulation->addRigidbody(LUA->GetVector(1), rigidRes.x, rigidRes.y, rigidRes.z, LUA->GetNumber(3), float3(), 10.f, LUA->GetBool(4));
 
 	bufferMutex->unlock();
 	LUA->Pop(3);

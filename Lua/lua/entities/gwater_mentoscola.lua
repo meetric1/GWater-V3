@@ -15,8 +15,6 @@ ENT.Purpose			= "OH NO"
 ENT.AdminOnly		= false
 ENT.Instructions	= ""
 ENT.Editable 		= true
-ENT.GWaterEntity 	= true
-ENT.SpawnOffset		= Vector(0, 0, 8)
 
 function ENT:Initialize()
 	self.Running = false
@@ -31,7 +29,7 @@ function ENT:Initialize()
 		WireLib.CreateOutputs(self, {"Active"})
 	end
 	
-	self.FlowSound = CreateSound(self, "thrusters/rocket04.wav")
+	self.FlowSound = CreateSound(self, "PhysicsCannister.ThrusterLoop")
 	self:SetModel("models/props_junk/garbage_glassbottle003a.mdl")
 	self:SetMaterial("models/debug/env_cubemap_model")
 	
@@ -157,6 +155,8 @@ function ENT:Think()
 		local drawColor = self:GetColor():ToVector()
 		if drawColor == Vector(1, 1, 1) then
 			drawColor = Vector(0.75, 1, 2)
+		else
+			drawColor = drawColor * 2
 		end
 		
 		for i=0, 5 - dt do

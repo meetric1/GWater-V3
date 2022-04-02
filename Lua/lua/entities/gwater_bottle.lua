@@ -110,7 +110,7 @@ function ENT:Think()
 end
 
 function ENT:OnRemove()
-	if CLIENT then
+	if CLIENT and self.FlowSound then
 		self.FlowSound:Stop()
 		self.FlowSound = nil
 	end

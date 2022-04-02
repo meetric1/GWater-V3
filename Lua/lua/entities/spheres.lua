@@ -19,8 +19,7 @@ for k,v in ipairs(xyz) do
 	ENT.PrintName = "Sphere (" .. v .. ")"
 	ENT.Category = "GWater"
 	ENT.Author = "Mee & AndrewEathan (with help from PotatoOS)"
-	ENT.GWaterEntity = true
-	ENT.GWaterNotPhysical = true
+	ENT.AdminOnly = (v == 20)
 	
 	function ENT:SpawnFunction(ply, tr, ClassName)
 		net.Start("GWATER_SPAWNSPHERE")

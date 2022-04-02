@@ -113,6 +113,9 @@ class FLEX_API {
     NvFlexBuffer* lengthsBuffer;
     NvFlexBuffer* coefficientsBuffer;
 
+    NvFlexBuffer* diffusePosBuffer;
+    NvFlexBuffer* diffuseSingleBuffer;
+
     ForceFieldData* forceFieldData;
 
     std::vector<Prop> props;
@@ -135,7 +138,7 @@ public:
     void addMeshConvex(GarrysMod::Lua::ILuaBase* LUA);
     void addMeshCapsule(GarrysMod::Lua::ILuaBase* LUA);
     void addCloth(float3 pos, int width, float radius, float stiffness, float mass);
-    void addRigidbody(float3 lower, int dimx, int dimy, int dimz, float radius, float3 velocity, float mass);
+    void addRigidbody(float3 lower, int dimx, int dimy, int dimz, float radius, float3 velocity, float mass, bool constraints);
     void updateMeshPos(Vector pos, QAngle ang, int id);
     void freeProp(int ID);
 
@@ -160,7 +163,7 @@ public:
 
     // springs (flex provided functions)
     void CreateSpringGrid(float3 lower, int dx, int dy, float radius, int phase, float stretchStiffness, float mass);
-    void CreateParticleGrid(float3 lower, int dimx, int dimy, int dimz, float radius, float3 velocity, float mass, int phase);
+    void CreateParticleGrid(float3 lower, int dimx, int dimy, int dimz, float radius, float3 velocity, float mass, int phase, bool constraints);
     void CreateSpring(int i, int j, float stiffness, float give = 0.0f);
 
     void addForceField(Vector pos, float radius, float strength, bool linear, int type);

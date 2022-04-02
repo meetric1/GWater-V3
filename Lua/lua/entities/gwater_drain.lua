@@ -14,8 +14,6 @@ ENT.PrintName		= "Drain"
 ENT.Author			= "Mee & AndrewEathan (with help from PotatoOS)"
 ENT.Purpose			= "Functional Drain!"
 ENT.Instructions	= ""
-ENT.Editable		= true
-ENT.GWaterEntity 	= true
 
 function ENT:Initialize()
 	if CLIENT then return end
