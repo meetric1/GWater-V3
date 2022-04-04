@@ -58,7 +58,7 @@ hook.Add("GWaterPostInitialized", "GWater.Startup", function()
         local ppm = 8192    -- particles per mesh
         local i = 0
         while true do   -- refresh forever
-            coroutine.yield()
+            coroutine.wait(math.max(gwater.Convars["altrenderingrefreshrate"]:GetFloat(), 0))
             
             local data = gwater.GetSkewedData()
             if #data == 0 then 
@@ -79,7 +79,7 @@ hook.Add("GWaterPostInitialized", "GWater.Startup", function()
 
             -- generate our mesh
             local radius = gwater.GetRadius() * 1.5
-            local eyeForward = EyeAngles():Forward()
+            local eyeForward = -EyeAngles():Forward()
             mesh.Begin(meshes[i], MATERIAL_QUADS, ppm) -- lets start making the static mesh
             local _, err = pcall(function()
             for vertex = (i - 1) * ppm + 1, #data do

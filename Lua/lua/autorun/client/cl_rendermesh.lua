@@ -1,12 +1,9 @@
 AddCSLuaFile()
 
 -- create the render mesh for cloth entities
-local time = 0
 hook.Add("PreRender", "GWATER_RENDER_CLOTH", function()
 	if not gwater or not gwater.HasModule then return end
 	if gwater:GetTimescale() == 0 then return end
-	time = time % (gwater.GetConfig("simFPS") / 60) + 1
-	if time != 1 then return end
 
 	local positions = gwater.GetClothData()	-- this is expensive as fuck
 	clothCount = #positions

@@ -394,7 +394,7 @@ local function renderingTab(tabs)
 	local pickmat = vgui.Create("DComboBox", rendering)
 	pickmat:SetPos(10, 150)
 	pickmat:SetSize(150, 20)
-	pickmat:SetValue("watermat")
+	pickmat:SetValue("water")
 	pickmat:SetTextColor(Color(200, 200, 200))
 	
 	for k,v in pairs(gwater.Materials) do
@@ -550,7 +550,9 @@ local function gwaterTab(tabs)
 	shid.Paint = GenericPaint
 	shid.DoClick = function()
 		for k,v in pairs(gwater.Params) do
-			gwater.SetConfig(k, 0)
+			if v != gwater.Params["simFPS"] then
+				gwater.SetConfig(k, 0)
+			end
 		end
 		
 		gwater.SetConfig("dynamicFriction", 0.15)

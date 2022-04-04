@@ -151,11 +151,9 @@ hook.Add("GWaterInitialized", "GWater.Params", function()
 			["$refracttint"] = defaultColor,
 			["$normalmap"] = "gwater/gwater_normal_alpha",
 			["$dudvmap"] = "gwater/gwater_dudv",
-			["$nocull"] = 1,
 		}),
 		expensive_water = CreateMaterial("GWater_ExpensiveWater", "Refract", {
 			["$refractamount"] = 0.01,
-			["$model"] = 1,
 			["$refracttint"] = defaultColor,
 			["$normalmap"] = "shadertest/noise_normal",
 			["$dudvmap"] = "dev/water_dudv",
@@ -167,6 +165,7 @@ hook.Add("GWaterInitialized", "GWater.Params", function()
 		}),
 		original_water = CreateMaterial("GWater_OriginalWater", "Refract", {
 			["$refractamount"] = 0.01,
+			["$model"] = 1,
 			["$refracttint"] = defaultColor,
 			["$normalmap"] = "shadertest/noise_normal",
 			["$dudvmap"] = "dev/water_dudv",
