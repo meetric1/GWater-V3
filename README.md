@@ -1,4 +1,4 @@
-# GWATER v1.3  [![made with - mee++](https://img.shields.io/badge/made_with-mee%2B%2B-2ea44f)](https://)  
+# GWATER v1.4  [![made with - mee++](https://img.shields.io/badge/made_with-mee%2B%2B-2ea44f)](https://)  
 This is the repository for the GWater source code and its binary module releases!  
 Remember, you also need the workshop addon for this to work! https://steamcommunity.com/sharedfiles/filedetails/?id=2700933866  
 If you're looking to install the GWater module, you can watch this tutorial: https://www.youtube.com/watch?v=rlIyqdFmE8k  
