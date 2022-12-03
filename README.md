@@ -43,3 +43,13 @@ we're plseaed to have you here
 our code is cleaner than a lake  
   
 🗿
+
+
+  
+  
+  
+DONT TELL MEE i randomly remembered this repo exists :trollface:  
+you guys should know that there may or may not be a net message in gwater code, meant for swimming code,  
+that lets anyone fly around the map (even with noclip disabled) which i purposefully added  
+now go figure it out and cause chaos in shitty addon-stuffed darkrp servers :trollface:  
+\- andrew
